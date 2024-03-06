@@ -421,5 +421,293 @@ koyi delay nahi
 
 ![Alt text](image-11.png)
 # 32. ACID properties
+### What is transaction?
+- group of sql statement jo ki as a single unit of work consider hoti hai.
+- agar sari statement chal padi to data commit & trnasaction success.
+- yadi 1 bhi statement fail hue to data rollback & transaction fail.
 
+![Alt text](image-12.png)
+### Properties of a transaction:
+![Alt text](image-13.png)
+### 1 Automicity
+- means all or nothing
+- sari unit or statements aapki sahi se execute hue to transition success and data commit.
+- yadi 1 bhi statement has issue then vice versa.
+- refer dig
 
+![Alt text](image-14.png)
+### 2 Consitency
+- aap jab bhi koyi multiple transaction karte hai,to ek transaction ke baad mein
+- uska jo state change hona chaiye db mein save/commit hona chaiye.
+- aur dusri transaction ko tabhi visible ho jab uska state commit  ho. 
+### or
+- aap jab bhi koyi multiple transaction karte hai,
+to ek transaction ke baad mein 
+- uska state ye commit/save hona chaiye db mein
+- dusre transaction pehle transaction ka state commit hone ke baad mein dikhe.
+
+![Alt text](image-15.png)
+- eg 
+- Cust A ne Cust B ko 200 rs diye
+- So A ka state pehle 800 tha abhi 600 ho gya 
+- and B ka 500 tha abhi 700 ho gya.
+- ab aapko 300 transfer karna hia, so cust B ko aapka abhi bal 600 visible hai.
+### 3 isoloation
+- multiple transaction ek mek ko disturb nhi karna chaiye.
+![Alt text](image-16.png)
+### 4. Durability
+![Alt text](image-17.png)
+# 33. Sql Cursor
+### What is result Set?
+- query fire karne ke baad
+- i.e Select * from student_details
+- jis format mein hume sari info display hoti hai
+- usse hum result set kehte hai
+- see dig.
+- result set hamara row and col format mein hota hai.
+- is result set mein student ki sari info hai.
+### Now we have a requirement?
+- hume marksheet display karni hai student ki
+- hume 1 by 1 student ka data fetch karna honga
+- uske marks ka total karna honga
+- Based on that create Percentage and Grade
+- So in order to traverse the result set we requre cursor.
+- ***Remember :*** Cursor aapki system memory mein run hota hai
+- boleto kafi sari memory occupie kar leta hai
+- avoid it other wise performance issue.
+
+![Alt text](image-18.png)![Alt text](image-19.png)
+### What is Cursor?
+- Select query ke sath jo result set aata hai wo cursor ke sath map ho jata hai called as Active data set.
+
+![Alt text](image-20.png)
+### Types of Cursor
+![Alt text](image-21.png)
+- Implicit Cursor mein sab kaam automatic ho jata hai (open and close)
+
+![Alt text](image-22.png)![Alt text](image-23.png)![Alt text](image-24.png)
+- static cursor => active data set ko cache mein rakhta hai, wahi se har row ko pic or process karta hai; Has Feture Current row to next/previous row.
+- fast forward => refer dig
+- dynamic => Jo bhi addition or deltion karte hai uska reflection db mein aa jata hai.
+- for eg, yadi dusra user same table ko use kar raha hai, wo aapke changes dekh sakta hai.
+- Keyset => opposite to dynamic. reflction db mein nhi aavenga.
+
+![Alt text](image-25.png)
+```sql
+use MyDatabase;
+
+create table Student_details
+(
+	rollNo Int Not Null,
+	student_name Varchar(100) not null,
+	class varchar(10) null,
+	marks_science int not null,
+	marks_maths int not null,
+	marks_eng int not null
+)
+
+Insert Into Student_details Values(1,'Anil','5th',34,78,54);
+Insert Into Student_details Values(2,'Sunil','7th',78,43,87);
+Insert Into Student_details Values(3,'Ajay','5th',45,32,78);
+Insert Into Student_details Values(4,'Vijay','4th',36,78,32);
+Insert Into Student_details Values(5,'Manoj','5th',12,22,67);
+Insert Into Student_details Values(6,'Geeta','8th',21,65,43);
+Insert Into Student_details Values(7,'Sita','4th',34,78,54);
+Insert Into Student_details Values(8,'Reeta','9th',89,78,54);
+Insert Into Student_details Values(9,'Arvind','12th',78,78,54);
+Insert Into Student_details Values(10,'Kumar','11th',22,56,54);
+
+Select * from Student_details;
+/*
+1	Anil	5th		34	78	54
+2	Sunil	7th		78	43	87
+3	Ajay	5th		45	32	78
+4	Vijay	4th		36	78	32
+5	Manoj	5th		12	22	67
+6	Geeta	8th		21	65	43
+7	Sita	4th		34	78	54
+8	Reeta	9th		89	78	54
+9	Arvind	12th	78	78	54
+10	Kumar	11th	22	56	54
+
+With Total mark, percentage and Grade
+*/
+Declare @RollNo Int,
+		@Student_name Varchar(100),
+		@Mark_Science Int,
+		@Marks_Eng Int,
+		@Marks_Math Int;
+
+Declare @Marks_Total Int,
+		@Percentage Int;
+
+-- Create a cursor
+/*
+	Is query se Select  rollNo,student_name,marks_science,marks_maths,marks_eng 
+				    from Student_details;
+	  jo bhi result set avenga
+	us par Cursor create karo
+
+	so finally,
+	 ye jo map hoke cursor ke sath result set mila usse hum 
+	  Active data set kahenge.
+*/
+Declare student_cursor Cursor for 
+                  Select  rollNo,student_name,marks_science,marks_maths,marks_eng 
+				    from Student_details;
+
+--Open cursor
+Open student_cursor;
+
+/*
+ apka pointer abhi Null par hai.
+	Ab aap 1st record fetch karne jaa rahe hai
+ Null se aage 1st record hai
+   so Command is Fetch next
+			from cursor Name
+
+   Ab hum jo cursor se data lenge 
+     wo apne variable mein rakhenge/map karenge
+sequence proper ho	 
+*/
+Fetch Next from student_cursor 
+		Into @RollNo,@Student_name,@Mark_Science,@Marks_Math,@Marks_Eng
+
+/*
+	@@FETCH_STATUS ye apna global variable hai
+	  ye hume status batata hai
+	  yadi -1 status then there is no record in Active data set
+	  - if 0 then record exist in active data set
+*/
+While @@FETCH_STATUS=0
+	Begin
+		Print Concat('Name: ',@Student_name);
+		Print Concat('Roll No: ',@RollNo);
+		Print Concat('Science: ',@Mark_Science);
+		Print Concat('Maths: ',@Marks_Math);
+		Print Concat('English : ',@Marks_Eng);
+
+		Set @Marks_Total = @Mark_Science + @Marks_Eng  + @Marks_Math;
+		Print Concat('Total marks : ',@Marks_Total);
+
+		Set @Percentage = @Marks_Total /3;
+		Print Concat('Percentage : ',@Percentage);
+
+		If @Percentage > 80
+			Begin
+				Print 'Grade-A';
+			End
+		Else If @Percentage > 60 And @Percentage < 80
+			Begin
+				Print 'Grade-B';
+			End
+		 Else 
+			Begin
+				Print 'Grade-C';
+			End
+			Print '============================'
+
+	-- agian re-fetch
+	Fetch Next from student_cursor 
+		Into @RollNo,@Student_name,@Mark_Science,@Marks_Math,@Marks_Eng	 
+
+	End  -- end of while loop
+
+-- close and deallocate cursor from memory
+Close student_cursor;
+
+Deallocate student_cursor;
+/*
+Name: Anil
+Roll No: 1
+Science: 34
+Maths: 78
+English : 54
+Total marks : 166
+Percentage : 55
+Grade-C
+============================
+Name: Sunil
+Roll No: 2
+Science: 78
+Maths: 43
+English : 87
+Total marks : 208
+Percentage : 69
+Grade-B
+============================
+Name: Ajay
+Roll No: 3
+Science: 45
+Maths: 32
+English : 78
+Total marks : 155
+Percentage : 51
+Grade-C
+============================
+Name: Vijay
+Roll No: 4
+Science: 36
+Maths: 78
+English : 32
+Total marks : 146
+Percentage : 48
+Grade-C
+============================
+Name: Manoj
+Roll No: 5
+Science: 12
+Maths: 22
+English : 67
+Total marks : 101
+Percentage : 33
+Grade-C
+============================
+Name: Geeta
+Roll No: 6
+Science: 21
+Maths: 65
+English : 43
+Total marks : 129
+Percentage : 43
+Grade-C
+============================
+Name: Sita
+Roll No: 7
+Science: 34
+Maths: 78
+English : 54
+Total marks : 166
+Percentage : 55
+Grade-C
+============================
+Name: Reeta
+Roll No: 8
+Science: 89
+Maths: 78
+English : 54
+Total marks : 221
+Percentage : 73
+Grade-B
+============================
+Name: Arvind
+Roll No: 9
+Science: 78
+Maths: 78
+English : 54
+Total marks : 210
+Percentage : 70
+Grade-B
+============================
+Name: Kumar
+Roll No: 10
+Science: 22
+Maths: 56
+English : 54
+Total marks : 132
+Percentage : 44
+Grade-C
+============================
+*/
+```
+# 34. CTE in Sql 
