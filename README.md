@@ -711,3 +711,45 @@ Grade-C
 */
 ```
 # 34. CTE in Sql 
+![Alt text](image-26.png)
+
+### Why to apply CTE:
+- yadi aap window function use karna chahte hai CTE is best approach
+- Yadi aapka View complex hai, so you can manage by CTE.
+
+![Alt text](image-27.png)
+### Types of CTE
+- ***NON recursive*** mein aap single/ multiple CTE create kar sakte
+- usse ek temprary result set create hota hai; jaha aap DML statement apply kar sakte ho.
+
+![Alt text](image-28.png)
+### CTE Anatomy
+- ye col name (Id,Name) optional hai,but if you specify then it should map properly/sequentially in Select statement 
+
+![Alt text](image-29.png)
+```sql
+
+```
+![Alt text](image-30.png)
+### Recursive CTE
+- jab hum kisi task ko repeatedly execute karna chahte hai, 1 condition ke sath mein.
+- hamare pass mein data hai jo hierachical format mein hai,  1 column like PK kisi dusre column like FK ko refer kar raha hai; waha use kar sakte.
+
+![Alt text](image-31.png)
+- cte_query_defiination also called base query/result ek baar execute hoti 
+```sql
+
+```
+# 35. SQl Parameter Sniffing
+- jab aap stored procedure create karte hai, uske andar query ko write karte hai
+- then procedure ko aap compile karte hai and then execute karte hai
+- to uska ek process hota hai
+- Sql optimizer sabse pehele aapke stored procedure ke andar jo parameter hai uska analysis karta hai
+- and then based on that parameter analysis it will create a plan.(also called as execution plan)
+- us plan ko wo cache ke andar store kar deta hai
+- This process is called as paramete sniffing.
+
+![Alt text](image-32.png)
+### How store procedure compile
+
+![Alt text](image-33.png)

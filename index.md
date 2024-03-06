@@ -4,3 +4,4 @@
 ### 32. ACID properties
 ### 33. Sql Cursor
 ### 34. CTE in Sql 
+### 35. SQl Parameter Sniffing
