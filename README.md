@@ -727,8 +727,143 @@ Grade-C
 - ye col name (Id,Name) optional hai,but if you specify then it should map properly/sequentially in Select statement 
 
 ![Alt text](image-29.png)
+### Via query
 ```sql
+use MyDatabase;
 
+create table Student4
+(
+	rollNo Int Not Null,
+	name Varchar(100) not null,
+	class varchar(10) null,
+	science int not null,
+	math int not null,
+	eng int not null
+)
+
+Insert Into Student4 Values(1,'Anil','5th',34,78,54);
+Insert Into Student4 Values(2,'Sunil','7th',78,43,87);
+Insert Into Student4 Values(3,'Ajay','5th',45,32,78);
+Insert Into Student4 Values(4,'Vijay','4th',36,78,32);
+Insert Into Student4 Values(5,'Manoj','5th',12,22,67);
+Insert Into Student4 Values(6,'Geeta','8th',21,65,43);
+Insert Into Student4 Values(7,'Sita','4th',34,78,54);
+Insert Into Student4 Values(8,'Reeta','9th',89,78,54);
+Insert Into Student4 Values(9,'Arvind','12th',78,78,54);
+Insert Into Student4 Values(10,'Kumar','11th',22,56,54);
+
+Select * from Student4;
+/*
+1	Anil	5th		34	78	54
+2	Sunil	7th		78	43	87
+3	Ajay	5th		45	32	78
+4	Vijay	4th		36	78	32
+5	Manoj	5th		12	22	67
+6	Geeta	8th		21	65	43
+7	Sita	4th		34	78	54
+8	Reeta	9th		89	78	54
+9	Arvind	12th	78	78	54
+10	Kumar	11th	22	56	54
+
+Target-
+    - har student ke marks ka total karna hai
+	- unki percentage
+	- fhir grading
+*/
+
+-- 1) Using query
+Select rollNo,name,science,math,eng,
+	(science + math + eng) as Total,
+	(science + math + eng) / 3 as Average,
+
+	Case 
+		When ((science + math + eng) / 3) > 70 Then 'A'
+		When ((science + math + eng) / 3) > 40 And ((science + math + eng) / 3) < 70 Then 'B'
+		Else 'F'
+	 End as Grade
+
+from Student4;
+/*
+Rno Name  Sc   Ma  En  Tot Avg Grade
+1	Anil	34	78	54	166	55	B
+2	Sunil	78	43	87	208	69	B
+3	Ajay	45	32	78	155	51	B
+4	Vijay	36	78	32	146	48	B
+5	Manoj	12	22	67	101	33	F
+6	Geeta	21	65	43	129	43	B
+7	Sita	34	78	54	166	55	B
+8	Reeta	89	78	54	221	73	A
+9	Arvind	78	78	54	210	70	F
+10	Kumar	22	56	54	132	44	B
+*/
+```
+### via CTE
+```sql
+/*
+	The above query is little complex.
+		We can do same thing via CTE
+*/
+
+With  ctTotal 
+As
+ (
+	Select rollNo,(science + math + eng) as Total from Student4
+ ),
+  ctAvg 
+  As
+ (
+	Select rollNo,(science + math + eng) / 3 as Average from Student4
+ ),
+ ctGrade
+ As
+ (
+  Select rollNo,
+	CASE
+		When ((science +  math + eng) / 3) > 70 Then 'A'
+		When ((science + math + eng) / 3) > 40 And ((science + math + eng) / 3) < 70 Then 'B'
+		Else 'F'
+	 End  as Grade
+			from Student4
+ )
+ Select sd.rollNo,
+			science,
+			math,
+			eng,
+			ctot.Total,
+			cAvg.Average,
+			cGrade.Grade
+    from Student4 sd 
+			Inner Join 
+		ctTotal ctot On (sd.rollNo = ctot.rollNo)
+			Inner Join 
+		ctAvg cAvg On (sd.rollNo = cAvg.rollNo)
+			Inner JOin
+		ctGrade cGrade on (sd.rollNo = cGrade.rollNo);
+/*
+1	34	78	54	166	55	B
+2	78	43	87	208	69	B
+3	45	32	78	155	51	B
+4	36	78	32	146	48	B
+5	12	22	67	101	33	F
+6	21	65	43	129	43	B
+7	34	78	54	166	55	B
+8	89	78	54	221	73	A
+9	78	78	54	210	70	F
+10	22	56	54	132	44	B
+
+CTE ka approach hota hai  
+ - divide and conquer
+
+ Humne 3 Cte banaye namely ctTotal,ctAvg,ctGrade 
+   iske 3 result set banege.
+ &
+  humne iNNErjoin lagake 
+    sara result le aaya
+
+Benefit:
+  divie into simple result set
+  maintaince & readability improves.
+*/	
 ```
 ![Alt text](image-30.png)
 ### Recursive CTE
@@ -738,7 +873,142 @@ Grade-C
 ![Alt text](image-31.png)
 - cte_query_defiination also called base query/result ek baar execute hoti 
 ```sql
+-- Hum cte bana rahe hai 
+   -- uska name hai cteRecursive
+     -- uske andar field hai jiska name hai col1
 
+With cteRecursive(col1)
+ As 
+	(
+		Select 1    -- This is the base query which execute only once
+		            -- Here First time col1 = 1  after that it is ignored
+
+			Union All  -- This will join Base query result + repeated query result
+
+		Select col1 + 1 from cteRecursive    -- another cte which is running 
+						   where col1 < 10      -- till condition valid
+	)
+Select col1 from cteRecursive;
+/*
+col1
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+
+	- Hamara output 1 se lekar 10 tak aaya
+*/
+```
+### One more CTE Eg
+```sql
+use MyDatabase;
+
+Create table Employee6
+(
+	EmployeeId Int,
+	FirstName Varchar(100),
+	ManagerId Int
+)
+
+Insert Into Employee6 Values (101,'ken',Null);
+Insert Into Employee6 Values (102,'Terri',101);
+Insert Into Employee6 Values (103,'Roberto',101);
+Insert Into Employee6 Values (104,'Rob',102);
+Insert Into Employee6 Values (105,'Gail',102);
+Insert Into Employee6 Values (106,'Jossef',103);
+Insert Into Employee6 Values (107,'Dylan',103);
+Insert Into Employee6 Values (108,'Diane',105);
+Insert Into Employee6 Values (109,'Gigi',105);
+Insert Into Employee6 Values (110,'Michael',106);
+
+Select * from Employee6;
+/*
+Eid Name   ManId
+101	ken		NULL
+102	Terri	101
+103	Roberto	101
+104	Rob		102
+105	Gail	102
+106	Jossef	103
+107	Dylan	103
+108	Diane	105
+109	Gigi	105
+110	Michael	106
+
+EmployeeId ye managerId ko refer karta hai
+  EmployeeId Pk hai humen time being nhi liye
+  and MangerId FK hai
+
+Target :  Hume Employee name ke sath uske manager ka name bhi nikalna hia
+*/
+
+With cteReports
+ As
+ (
+	Select EmployeeId,FirstName,ManagerId  from Employee6 
+										where ManagerId Is Null
+
+				Union all
+
+	 Select e.EmployeeId,e.FirstName,e.ManagerId  from Employee6 e
+			Inner Join
+		cteReports r 
+				On e.ManagerId = r.EmployeeId -- table scan ho gyi recursively
+ )
+ Select EmployeeId,FirstName as FullName,cteReports.ManagerId,
+		(Select FirstName from Employee6 where EmployeeId=cteReports.ManagerId) as Manager
+			From cteReports 
+				order by cteReports.ManagerId
+/*
+Eid Ful		Mid   Manager
+101	ken		NULL	NULL
+102	Terri	101		ken
+103	Roberto	101		ken
+104	Rob		102		Terri
+105	Gail	102		Terri
+106	Jossef	103		Roberto
+107	Dylan	103		Roberto
+108	Diane	105		Gail
+109	Gigi	105		Gail
+110	Michael	106		Jossef
+*/
+```
+### via self join
+```sql
+/*
+	Same issue is resolved by Self Join
+	memory jayda leta, since 2 copy bana jati hai
+*/
+
+Select emp1.employeeId as 'EmpId', emp1.firstName as 'EmpName',
+		emp2.employeeId as 'ManagerId', emp2.firstName as 'ManagerName'
+from  Employee6 emp1,Employee6 emp2
+	where emp1.managerId = emp2.employeeId
+
+/*
+102	Terri	101	ken
+103	Roberto	101	ken
+104	Rob		102	Terri
+105	Gail	102	Terri
+106	Jossef	103	Roberto
+107	Dylan	103	Roberto
+108	Diane	105	Gail
+109	Gigi	105	Gail
+110	Michael	106	Jossef
+
+ but yaar 101 nhi aaya.
+   dekhna padengo
+iska answer hai hum compare kya kar rahe  
+emp1.managerId = emp2.employeeId 
+  jab Null ManagerId ki koyi EmployeeId mili hi nhi
+  That's why wo data fetch hua hi nhi..
+*/
 ```
 # 35. SQl Parameter Sniffing
 - jab aap stored procedure create karte hai, uske andar query ko write karte hai
@@ -751,5 +1021,43 @@ Grade-C
 
 ![Alt text](image-32.png)
 ### How store procedure compile
+- Jab store procedure first time jab create and execute karte hai.
+- tab following process hoti hai
 
-![Alt text](image-33.png)
+![Alt text](image-33.png)![Alt text](image-34.png)
+### Problem with Parameter snnifing
+![Alt text](image-35.png)
+### When to use Parameter snnifing.
+![Alt text](image-36.png)
+![Alt text](image-37.png)![Alt text](image-38.png)![Alt text](image-39.png)
+- Note: hamare isme index scan hi aa raha hai, baad mein check karna padenga.
+
+![Alt text](image-40.png)![Alt text](image-41.png)
+- jab aapne procedure ko parameter diya, Sales
+- to ek plan create hua procedure ke basis par isse kehte hai parameter sniffing. 
+- aur ye plan ab cache mein store hai.
+
+![Alt text](image-42.png)
+
+- ye account ka data bahut kam hai, individually isne Index seek use kiya tha.
+- and index seek ye index scan se fast hai.
+### Fir se humne cache ko clear kar diya.Free ProcCache command use karke aur 
+![Alt text](image-43.png)![Alt text](image-44.png)![Alt text](image-45.png)
+### How to stop parameter snifiing
+#### Disable Parameter sniffing prop(not recommend)
+![Alt text](image-46.png)
+### With Recompile
+![Alt text](image-47.png)
+- Recompile ye cost effective hai, aapka time jyada lagenga.
+#### Hum chahte hai, ki ek particualr value ke liye plan ko optimize karde
+### Optimize for variable value
+![Alt text](image-48.png)
+- wo particular value ke liye plan ko optimize kar denga.
+### Optimize for Unknown
+![Alt text](image-49.png)
+- ye aisa plan create karnega, jo sabhi parameter ke liye suite ho.
+# 36. Sql User defined function
+
+
+
+

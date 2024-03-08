@@ -5,3 +5,4 @@
 ### 33. Sql Cursor
 ### 34. CTE in Sql 
 ### 35. SQl Parameter Sniffing
+### 36. Sql User defined function
