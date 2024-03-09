@@ -1057,6 +1057,318 @@ emp1.managerId = emp2.employeeId
 ![Alt text](image-49.png)
 - ye aisa plan create karnega, jo sabhi parameter ke liye suite ho.
 # 36. Sql User defined function
+![Alt text](image-50.png)![Alt text](image-51.png)![Alt text](image-52.png)
+```sql
+use MyDatabase;
+/*
+	System Defined / Pre-Defined Functions
+*/
+
+-- Fetch current date
+Select GETDATE();
+-- 2024-03-09 08:26:57.087  Fetch the cyrrent date  with  current time (server ka)
+
+-- Current App Name
+Select APP_NAME();
+-- Microsoft SQL Server Management Studio - Query
+
+--Current User
+Select CURRENT_USER
+-- dbo
+
+/*
+	Coal - esce ()  ye ek parameterize function hai
+	 isme hum hamesha 2 value pass karenge
+	  ye check karenga
+	yadi 1st value null hai
+	  to 2nd value aapke output mein print kar denga.
+*/
+
+Declare @Fname Varchar(50);
+Select Coalesce(@Fname,'Smith');
+--Smith
+
+--Now we provide value to @Fname
+Declare @Fname Varchar(50);
+set @Fname = 'Aditya';
+Select Coalesce(@Fname,'Smith');
+-- Aditya
+```
+### Sql User Defined Function
+- Also called as ***Custom function***
+- aap function create karte waqt hi decide kar sakte ki iss particualr function mein parmeter dena hai ya nahi.
+- Generally ye single value ie Scalar value return kar sakta hai
+- ya table bhi return kar sakta hai
+- ***Benefit :***
+- Function ek tarah ka sub-routine hota hai
+- jo compile hokar cache mein rehta hai
+- isse network traffic reduce hota hai.
+
+![Alt text](image-53.png) ----------![Alt text](image-54.png)
+```sql
+use MyDatabase;
+/*
+User Defined Function (UDF)
+	Scalar Function :
+	  It will return a single value
+
+	Creating Scalar Function:-
+
+	Syntax ==>
+	Create Function Function_Name (Parameter Optional)
+	Returns return_type
+	As 
+	 Begin
+		Statement-1
+		Statement-2
+		Statement-n
+		Return return_value (Datatype must be same as you defined above)
+	 End
+*/
+
+Create Function AddDigit(@num1 Int,@num2 Int)
+RETURNS Int
+AS
+	Begin
+		Declare @result Int;
+		Set @result = @num1 + @num2;
+		return @result;
+	End
+
+-- For calling this function use Select
+Select AddDigit(1,3);
+-- 'AddDigit' is not a recognized built-in function name.
+
+-- Use scehama
+Select dbo.AddDigit(1,3);
+--4
+
+Select dbo.AddDigit();
+--An insufficient number of arguments were supplied for the procedure or function dbo.AddDigit.
+
+Select dbo.AddDigit('abc',3);
+--Conversion failed when converting the varchar value 'abc' to data type int.
+```
+![Alt text](image-55.png)
+#### Other Eg
+```sql
+
+Select * from Student_marks;
+/*
+RNo Sci Mat Eng
+1	34	78	54
+2	78	43	87
+3	45	32	78
+4	36	78	32
+5	12	22	67
+6	21	65	43
+7	34	78	54
+8	89	78	54
+9	76	78	54
+10	22	56	54
+
+Target : HUme in sabki marks ka total nikalna hai
+  rollno ke base se
+
+  So create a function for that
+*/
+Create Function GetTotal(@RollNo Int)
+Returns Int
+As
+	Begin
+		Declare @Result Int;
+		-- yaha ek column lena hai to Select
+		Select @Result = (science + math + eng) from Student_marks where RollNo = @RollNo;
+		return @result
+	End
+
+Select dbo.GetTotal(3);
+--155
+
+select rollno,science,eng,math,dbo.getTotal(rollno) as Total 
+                         from student_marks;
+/*
+RNo Sci Eng Mat Total
+1	34	54	78	166
+2	78	87	43	208
+3	45	78	32	155
+4	36	32	78	146
+5	12	67	22	101
+6	21	43	65	129
+7	34	54	78	166
+8	89	54	78	221
+9	76	54	78	208
+10	22	54	56	132
+
+Select statement mein jitni bhi row execute hoti hai
+ wo har ek row ke liye GetTotal() function  ye call ho riya hai
+
+ Similarly you can calculate Avg
+*/
+Create Function GetAvg(@RollNo Int)
+Returns Int
+As
+	Begin
+		Declare @result int
+		Select @result = (science + math + eng) / 3 from Student_marks where RollNo = @RollNo
+		return @result
+	End
+
+Select Rollno,Eng,science,math,GetAvg(RollNo) as Avg from Student_marks;
+--'GetAvg' is not a recognized built-in function name.
+
+Select Rollno,Eng,science,math,dbo.GetAvg(RollNo) as Avg from Student_marks;
+/*
+1	54	34	78	55
+2	87	78	43	69
+3	78	45	32	51
+4	32	36	78	48
+5	67	12	22	33
+6	43	21	65	43
+7	54	34	78	55
+8	54	89	78	73
+9	54	76	78	69
+10	54	22	56	44
+*/
+
+Select Rollno,Eng,science,math,dbo.GetTotal(RollNo) as Total,dbo.GetAvg(RollNo) as Avg
+			from Student_marks;
+/*
+1	54	34	78	166	55
+2	87	78	43	208	69
+3	78	45	32	155	51
+4	32	36	78	146	48
+5	67	12	22	101	33
+6	43	21	65	129	43
+7	54	34	78	166	55
+8	54	89	78	221	73
+9	54	76	78	208	69
+10	54	22	56	132	44
+*/
+```
+### Table valued Function
+####   1) Inline table Valued Function
+```sql
+/*
+User Defined Function(UDF)
+  Table Valued Function
+	- It returns a table.
+
+	Inline Table Valued Function : ==>
+		It contains single statement
+		  and that must be select Statement
+
+	Note: There is no need for Begin-End block in an in-line table valued function.
+
+Target :
+	Get student-list along with marks having total marks greater than 150
+*/
+Create Function GetStudentList(@total Int)
+Returns Table
+ As
+  return Select * from Student_Marks where (science + math + eng) > @total;
+
+Select dbo.GetStudentList(150);
+/*
+Cannot find either column "dbo" or the user-defined function
+	or aggregate "dbo.GetStudentList", or the name is ambiguous.
+
+Ye function ek table ko return kar raha hai
+  so jaise table ko call karte waise call kare.
+*/
+
+Select * from dbo.GetStudentList(150);
+/*
+1	34	78	54
+2	78	43	87
+3	45	32	78
+7	34	78	54
+8	89	78	54
+9	76	78	54
+
+Ye wo bande hai, jinki total 150 se upar hai
+*/
+```
+#### 2) Multi-Statement table Valued Function
+```sql
+/*
+User Defined Function(UDF)
+  Table Valued Function
+	- It returns a table.
+
+	Multi-Statement Table Valued Function : ==>
+	 - It contains multiple Sql Statements
+		 enclosed in Begin-End blocks.
+
+	Rules : 
+	 - In this the return value is declared as a table variable
+			which include full structure of table to be return
+	 - Return statement is there but without a value
+*/
+
+Select * from Student;
+/*
+Ro stName  City
+1	Anil	Delhi
+2	Sunil	Delhi
+3	Ajay	NCR
+4	Vijay	Pune
+5	Manoj	Faridabad
+6	Geeta	Noida
+7	Sita	Noida
+8	Reeta	New Delhi
+9	Arvind	Faridabad
+10	Kumar	Delhi
+
+Hamare pass Student table hai 
+  jo ki rollNo stname and City return kar rahi hai
+*/
+
+Select * from Student_Marks;
+/*
+Ro Sci Math Eng
+1	34	78	54
+2	78	43	87
+3	45	32	78
+4	36	78	32
+5	12	22	67
+6	21	65	43
+7	34	78	54
+8	89	78	54
+9	76	78	54
+10	22	56	54
+
+Yaha rollNo aur marks return ho rahe hai.
+*/
+
+Create Function MultiStatementGetAllStudent(@RollNo Int)
+Returns @Marksheet Table(stName Varchar(50),RollNo int,Eng int,Math Int,
+		Science Int,Average Decimal(4,2))
+/*
+	Yaha ek variable liya @Marksheet jo table type ka hai
+*/
+As
+ Begin
+	Declare @Per Decimal(4,2);
+	Declare @StName Varchar(100);
+
+	Select @StName = student_Name from student where RollNo = @RollNo;
+	Select @Per = ((Eng + Math + Science) / 3) from Student_Marks where RollNo = @RollNo;
+
+	--Now fill the marksheet
+	Insert Into @Marksheet(stName,RollNo,Eng,Math,Science,Average) 
+		Select @StName,RollNo,Eng,Math,Science,@Per from student_marks where RollNo=@RollNo;
+
+	Return
+ End
+
+ Select * from dbo.MultiStatementGetAllStudent(1)
+ /*
+ sName Ro  Eng  Mat Sci Average
+ Anil	1	54	78	34	55.00
+ */
+```
+# 37. Sql Views
 
 
 
