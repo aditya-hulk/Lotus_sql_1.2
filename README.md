@@ -1369,6 +1369,589 @@ As
  */
 ```
 # 37. Sql Views
+- It's an database object.
+- jab bhi aap view ko create karte hai, ye aapke db mein store ho jata hai.
+- Also called as Virtual table.
+- Isme khudka kuch data nhi hota, jo actual table hai waha se data fetch karke lata hai.
+- aap view single/multiple table se bhi create kar sakte
+- usme aap where aur join statement bhi use kar sakte hai.
+
+![Alt text](image-56.png)
+```sql
+use MyDatabase;
+/*
+	How to create a View?
+		We can create a View using create view Statement.
+		A view can be created from single or multiple table.
+*/
+Create table Student1
+(
+	rollNo Int,
+	studentName nVarchar(100),
+	city nVarchar(50)
+)
+
+Insert Into Student1 Values(1,'Smith','London');
+Insert Into Student1 Values(2,'John','Bangor');
+Insert Into Student1 Values(3,'Lucy','Delhi');
+Insert Into Student1 Values(4,'Dean','Calcutta');
+Insert Into Student1 Values(5,'Brain','Banglore');
+Insert Into Student1 Values(6,'Keet','Noida');
+Insert Into Student1 Values(7,'Suzan','Noida');
+Insert Into Student1 Values(8,'Keep','Faridabad');
+Insert Into Student1 Values(9,'Lovely','NCR');
+Insert Into Student1 Values(10,'Linda','New Delhi');
+
+Select * from Student1;
+/*
+1	Smith	London
+2	John	Bangor
+3	Lucy	Delhi
+4	Dean	Calcutta
+5	Brain	Banglore
+6	Keet	Noida
+7	Suzan	Noida
+8	Keep	Faridabad
+9	Lovely	NCR
+10	Linda	New Delhi
+
+Target -Create a view from this table
+*/
+Create View vwStudent1
+As
+Select * from Student1;
+
+--Fetch data from the view
+Select * from vwStudent1;
+/*
+1	Smith	London
+2	John	Bangor
+3	Lucy	Delhi
+4	Dean	Calcutta
+5	Brain	Banglore
+6	Keet	Noida
+7	Suzan	Noida
+8	Keep	Faridabad
+9	Lovely	NCR
+10	Linda	New Delhi
+
+Target : Check the defination of the view.
+*/
+sp_helptext vwStudent1;
+/*
+Create View vwStudent1  
+As  
+Select * from Student1;
+
+Observation:
+  Internally  ye query 
+		Select * from Student1; 
+		 fire hue hai
+	View ka apna koyi data nhi hota hai.
+
+Target: Modify the view
+          Hume display mein keval 2 col hi dikhana hai 
+*/
+Alter View vwStudent1
+As
+Select rollNo,studentName from Student1;
+
+Select * from vwStudent1;
+/*
+1	Smith
+2	John
+3	Lucy
+4	Dean
+5	Brain
+6	Keet
+7	Suzan
+8	Keep
+9	Lovely
+10	Linda
+
+Target: Drop a view
+*/
+Drop view vwStudent1;
+Select * from vwStudent1;
+/*
+	Invalid object name 'vwStudent1'.
+*/
+```
+### Creating view from multiple table.
+```sql
+/*
+	How to create a view using Multiple table.
+*/
+Select * from Student_Marks;
+/*
+1	34	78	54
+2	78	43	87
+3	45	32	78
+4	36	78	32
+5	12	22	67
+6	21	65	43
+7	34	78	54
+8	89	78	54
+9	76	78	54
+10	22	56	54
+*/
+Select * from Student1;
+/*
+1	Smith	London
+2	John	Bangor
+3	Lucy	Delhi
+4	Dean	Calcutta
+5	Brain	Banglore
+6	Keet	Noida
+7	Suzan	Noida
+8	Keep	Faridabad
+9	Lovely	NCR
+10	Linda	New Delhi
+
+Hamare pass 2 table hai,
+ - in dono mein rollNo wali column common hai
+ - so hum in dono ke sath view create karenge.
+*/
+Create view vwStudentMultiple
+As
+Select st.RollNo,st.studentName,st.city,sm.Eng,sm.Math,sm.Science
+		from Student1 st
+	Join
+		Student_Marks sm
+    On st.RollNo = sm.RollNo;
+
+Select * from vwStudentMultiple;
+/*
+1	Smith	London		54	78	34
+2	John	Bangor		87	43	78
+3	Lucy	Delhi		78	32	45
+4	Dean	Calcutta	32	78	36
+5	Brain	Banglore	67	22	12
+6	Keet	Noida		43	65	21
+7	Suzan	Noida		54	78	34
+8	Keep	Faridabad	54	78	89
+9	Lovely	NCR			54	78	76
+10	Linda	New Delhi	54	56	22
+
+Benefit :
+   - Yaha apne jo join lagakar complex query likhi hai
+		 wo complexity yaha hide ho chuki hai, view ke andar.
+	- Aap View par DML command laga sakte hai.
+*/
+```
+### Update the metadata of the sql view
+```sql
+/*
+	How the update the metadata of the sql view.
+		iski defination kaise update kare.
+
+		- suppose ek table mein kuch column add hua 
+		- but wo view mein nhi dikh padengo
+		- hume view ki defination ko update karno padengo
+*/
+Select * from Student1;
+/*
+1	Smith	London
+2	John	Bangor
+3	Lucy	Delhi
+4	Dean	Calcutta
+5	Brain	Banglore
+6	Keet	Noida
+7	Suzan	Noida
+8	Keep	Faridabad
+9	Lovely	NCR
+10	Linda	New Delhi
+
+Target : Isse hum view create karte hai.
+*/
+Create view  vwStudent
+As
+Select * from Student1;
+
+Select * from vwStudent;
+/*
+1	Smith	London
+2	John	Bangor
+3	Lucy	Delhi
+4	Dean	Calcutta
+5	Brain	Banglore
+6	Keet	Noida
+7	Suzan	Noida
+8	Keep	Faridabad
+9	Lovely	NCR
+10	Linda	New Delhi
+
+Suppose aapke Student1 table mein
+ - koyi naya col add ho gya
+*/
+Alter table student1
+	Add  country varchar(100);
+
+Select * from Student1;
+/*
+1	Smith	London		NULL
+2	John	Bangor		NULL
+3	Lucy	Delhi		NULL
+4	Dean	Calcutta	NULL
+5	Brain	Banglore	NULL
+6	Keet	Noida		NULL
+7	Suzan	Noida		NULL
+8	Keep	Faridabad	NULL
+9	Lovely	NCR			NULL
+10	Linda	New Delhi	NULL
+*/
+
+Select * from vwStudent;
+/*
+1	Smith	London
+2	John	Bangor
+3	Lucy	Delhi
+4	Dean	Calcutta
+5	Brain	Banglore
+6	Keet	Noida
+7	Suzan	Noida
+8	Keep	Faridabad
+9	Lovely	NCR
+10	Linda	New Delhi
+
+Observation:
+	- aapke student1 table mein to col add hua
+	- but view mein reflect nhi ho raha 
+	- jo isse create hai.
+Solution is use window command
+*/
+exec sp_refreshview vwStudent;
+
+Select * from vwStudent;
+/*
+1	Smith	London		NULL
+2	John	Bangor		NULL
+3	Lucy	Delhi		NULL
+4	Dean	Calcutta	NULL
+5	Brain	Banglore	NULL
+6	Keet	Noida		NULL
+7	Suzan	Noida		NULL
+8	Keep	Faridabad	NULL
+9	Lovely	NCR			NULL
+10	Linda	New Delhi	NULL
+*/
+```
+### Schema binding view
+```sql
+/*
+	How to create a Schema binding sql view.
+*/
+Create view vwStudentList
+As
+Select * from Student1;
+
+Select * from vwStudentList;
+/*
+1	Smith	London		NULL
+2	John	Bangor		NULL
+3	Lucy	Delhi		NULL
+4	Dean	Calcutta	NULL
+5	Brain	Banglore	NULL
+6	Keet	Noida		NULL
+7	Suzan	Noida		NULL
+8	Keep	Faridabad	NULL
+9	Lovely	NCR			NULL
+10	Linda	New Delhi	NULL
+
+ - aapne ek table(Student1) se view create kiya
+ - aur baad mein aapne ussi table se koyi particualr
+ - col delete kar diya.
+*/
+Alter table Student1 
+	drop column country;
+
+Select * from student1;
+/*
+1	Smith	London
+2	John	Bangor
+3	Lucy	Delhi
+4	Dean	Calcutta
+5	Brain	Banglore
+6	Keet	Noida
+7	Suzan	Noida
+8	Keep	Faridabad
+9	Lovely	NCR
+10	Linda	New Delhi
+*/
+select * from vwStudentList;
+/*
+Error:
+View or function 'vwStudentList' has more column names specified than columns defined.
+
+	- view ki defination mein 4 col the
+	- aur humne original table se 1 col drop kar diya.
+	- That's why aapke view ka execution fail ho gya.
+
+To protect such kind of scenarion use the concept of Schema binding.
+	- ek baar bind ho gya col view ke sath
+	- to na col ko drop kar sakte
+	- na change kar sakte hai (col ki defination ko)
+*/
+Create view vwStudentListWithSchemaBinding
+With SchemaBinding
+As
+Select rollNo,studentName,city from dbo.Student1;
+
+/*
+	Kya hum SchemaBinding se view create karne ke baad
+		table ke kisi column ko ko drop kar sakte.
+*/
+Alter table Student1 
+	drop column city;
+/*
+Error :
+The object 'vwStudentListWithSchemaBinding' is dependent on column 'city'.
+Msg 4922, Level 16, State 9, Line 318
+ALTER TABLE DROP COLUMN city failed because one or more objects access this column.
+
+Observation:
+  Schema Binding ke baad aap kisi col ko drop nhi kar sakte
+
+Q) Kya hum 
+	kisi col ke defination change kar sakte hai
+*/
+Alter table Student1 
+	alter column studentName Varchar(200);
+/*
+The object 'vwStudentListWithSchemaBinding' is dependent on column 'studentName'.
+Msg 4922, Level 16, State 9, Line 332
+ALTER TABLE ALTER COLUMN studentName failed because one or more objects access this column.
+
+Observation:
+  - Bind hone ke baad
+  - us col ko nahi change kar sakte / aur nahi drop
+*/
+```
+### Usage of View
+- Hide the complexity of query from user.
+- Row level security
+- Column level security
+#### Row Level Security
+```sql
+/*
+	How to Use View?
+		1) Row level Security
+
+	- Hum kisi user ko aisa view provide karna chahte hai
+		jisme 5 ke upar wale roll num  display/access ho sake.
+*/
+Create view vwRowLevel
+As
+Select * from Student1 where rollNo > 5;
+
+Select * from vwRowLevel;
+/*
+6	Keet	Noida
+7	Suzan	Noida
+8	Keep	Faridabad
+9	Lovely	NCR
+10	Linda	New Delhi
+
+Wohi data show ho raha hai
+ jiska rollno 5 se bada hai
+
+is tarah se diff row level seurity apply kar ke
+	aap customer ko view cater kar sakte.
+*/
+```
+#### Column Level Security
+```sql
+/*
+	How to Use View?
+		1) Row level Security
+
+	- Hum kisi user ko aisa view provide karna chahte hai
+		jisme 5 ke upar wale roll num  display/access ho sake.
+*/
+Create view vwRowLevel
+As
+Select * from Student1 where rollNo > 5;
+
+Select * from vwRowLevel;
+/*
+6	Keet	Noida
+7	Suzan	Noida
+8	Keep	Faridabad
+9	Lovely	NCR
+10	Linda	New Delhi
+
+Wohi data show ho raha hai
+ jiska rollno 5 se bada hai
+
+is tarah se diff row level seurity apply kar ke
+	aap customer ko view cater kar sakte.
+*/
+---------------------------------------
+/*
+  Usage of View:
+	2)Column Level Security
+	
+	- Hume kisi particular coloumn(Let say city) ko hide karna hai.
+*/
+Create view vwColumnLevel
+As
+Select rollNo,studentName from Student1;
+
+Select * from vwColumnLevel;
+/*
+1	Smith
+2	John
+3	Lucy
+4	Dean
+5	Brain
+6	Keet
+7	Suzan
+8	Keep
+9	Lovely
+10	Linda
+*/
+```
+### Apply DML statements on View
+- Aap jab bhi dml statement apply karte hai,
+	- uska reflection physical table par hota hai.  
+	- kyuki view ka apna data hai hi nahi
+- So first physical table mein change honga data  
+    - aur phir view waha se refresh honga.
+```sql
+/*
+	Apply DML statements on view
+	1) Insert Into view
+	2) Delete Into view
+	3) Updating views
+		Rules for Updation:
+			- Create a view via single table only.
+				U can't apply Update operation if view is created via multiple table.
+			- View  should not contain Group by, Having & distinct Clauses.
+			- It should not also contain subquery,
+				we cannot use a subquery in a view
+			- View should not contain Set operators.
+
+			Yadi aapne view mein in 4 condition me se 1 bhi condition use kari hai
+			  so view aapka non updatable ho javenga.
+*/
+Create view vwDemo
+As
+Select * from Student1;
+
+Select * from vwDemo;
+/*
+1	Smith	London
+2	John	Bangor
+3	Lucy	Delhi
+4	Dean	Calcutta
+5	Brain	Banglore
+6	Keet	Noida
+7	Suzan	Noida
+8	Keep	Faridabad
+9	Lovely	NCR
+10	Linda	New Delhi
+
+Target: Let's Insert a record
+*/
+Insert into vwDemo(rollNo,studentName,city) values(11,'New Name','New City');
+Select * from vwDemo;
+/*
+1	Smith		London
+2	John		Bangor
+3	Lucy		Delhi
+4	Dean		Calcutta
+5	Brain		Banglore
+6	Keet		Noida
+7	Suzan		Noida
+8	Keep		Faridabad
+9	Lovely		NCR
+10	Linda		New Delhi
+11	New Name	New City
+
+Observation : 
+   Inserting data via view
+
+Target : We use Delete query on view
+*/
+Delete from vwDemo where rollNO =2;
+
+Select * from vwDemo;
+/*
+1	Smith		London
+3	Lucy		Delhi
+4	Dean		Calcutta
+5	Brain		Banglore
+6	Keet		Noida
+7	Suzan		Noida
+8	Keep		Faridabad
+9	Lovely		NCR
+10	Linda		New Delhi
+11	New Name	New City
+
+Now updating view
+*/
+Update vwDemo set studentName='New_Name' where rollNo=1;
+
+Select * from vwDemo;
+/*
+1	New_Name	London
+3	Lucy	Delhi
+4	Dean	Calcutta
+5	Brain	Banglore
+6	Keet	Noida
+7	Suzan	Noida
+8	Keep	Faridabad
+9	Lovely	NCR
+10	Linda	New Delhi
+11	New Name	New City
+*/
+```
+### With Check Option
+```sql
+/*
+	With Check Option
+	 - It is applicable to a updatable view.
+	 - if the view is not updatable then there is no meaning to it.
+	 - This clause is used to prevent the insertion of rows in a view 
+			based on the condition; 
+			 If condition is satisfied then Insertion happen. Otherwise nothing happen.
+
+Target:
+	Hum chahte hai ki aisa view display hojave
+	 jiski city keval Noida ho
+	aur us view mein aisa hi data insert ho jiski city keval Noida hai.
+*/
+Create view vwWithCheckOptionDemo
+As
+Select * from Student1 where city='Noida'
+With Check Option;
+
+Select * from vwWithCheckOptionDemo;
+/*
+6	Keet	Noida
+7	Suzan	Noida
+*/
+
+Insert into vwWithCheckOptionDemo(rollNo,studentName,city) values(12,'Thor','Dc Washington');
+/*
+Error:
+The attempted insert or update failed because the target view either specifies WITH CHECK OPTION
+or spans a view that specifies WITH CHECK OPTION and one or more rows resulting from the operation did not qualify 
+under the CHECK OPTION constraint.
+
+*/
+
+Insert into vwWithCheckOptionDemo(rollNo,studentName,city) values(12,'Thor','Noida');
+
+Select * from vwWithCheckOptionDemo;
+/*
+12	Thor	Noida
+6	Keet	Noida
+7	Suzan	Noida
+*/
+```
+# 38. Indexed  View in ms sql
+
 
 
 

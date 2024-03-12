@@ -7,3 +7,4 @@
 ### 35. SQl Parameter Sniffing
 ### 36. Sql User defined function
 ### 37. Sql Views
+### 38. Indexed  View in ms sql
