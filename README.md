@@ -1951,6 +1951,213 @@ Select * from vwWithCheckOptionDemo;
 */
 ```
 # 38. Indexed  View in ms sql
+- view ek tarah ka virtual table hota hia               
+    - usme apna koyi data to hota nhi hai.
+    - View ka actual data access db se hota hai.
+- Jitni baar aap view ko use karte hai,
+    - utni baar aapki query db ko hit karti hai. 
+
+![Alt text](image-57.png)
+### Disadvantage of standard view
+![Alt text](image-58.png)
+- view create karte samay,
+    - yadi aap multiple table use karte hai, 
+    - mulitple join use karte hai 
+    - or Koyi complex query use karte hai.
+- and us case mein view ka use frequently hota hai, then it leads to performance issue.
+    - sql query ka access time badh sakta hai
+    - sql query ki performance degrade ho sakti hai
+### How to boost the performance
+![Alt text](image-59.png)
+- Yadi view ke andar multiple tables, multiple joins aur complex query hai so to boost performance we have the concept of Indexed view.
+- Index view ye ek materialized view ke saman hota hai.
+- Jab aap standard view create karte hai, tab uska data koyi db mein store nhi hota.  
+  - Mane jo bhi aapki calculation hoti hai, wo ussi time calculate hoti hai jab aap access karte hai.
+- On the contrary, index/materized view ka data ye db ke andar table ke format mein store hota hai.
+  - so jab bhi aap index/materilized view se data access karte to wo pre-stored result set hai db mein table ke format mein waha se data lake deta. lambi chowdi calculation/processing nhi lagata. So performance increase.
+### Diff between standard and index view.
+  ![Alt text](image-60.png)
+  - Standard view mein hamara result set kahi bhi store nhi hota hai, so jo data access hota hai wo db se direct hota hai.
+  - Index view  create karte  hai in 2 step  
+    1) pahle ek view create karte hai schema binding ke sath
+    2) then uske baad  1 unique cluster index create karte hai. Jo ki table ke form mein db mein store ho jata hai.
+- so jab bhi aapka view fire honga toh data aapka unique clustered index se aavenga.Update/delete/insert sab isme mein he aavenga.
+### How to create an index view
+![Alt text](image-61.png)![Alt text](image-62.png)
+- ye index view materizied view ki tarh hi kaam karta.
+- ek baar create ho gya to query hit materized view ko jati instead of db.
+```sql
+use MyDatabase;
+
+Create table emp
+(
+	empId Int Primary key,
+	empCode Int,
+	empSalary decimal(8,2),
+	deptId Int
+)
+
+Insert into emp Values(1,1,2000,2);
+
+Insert into emp Values(2,2,1500,5);
+Insert into emp Values(3,3,2000,3);
+Insert into emp Values(4,4,6500,2);
+Insert into emp Values(5,5,8500,4);
+Insert into emp Values(6,6,4500,5);
+Insert into emp Values(7,7,2000,2);
+Insert into emp Values(8,8,1500,5);
+Insert into emp Values(9,9,2000,3);
+Insert into emp Values(10,10,6500,2);
+Insert into emp Values(11,11,8500,4);
+Insert into emp Values(12,12,4500,5);
+
+Create table empDept
+(
+	deptId Int,
+	deptName Varchar(200)
+)
+
+Insert into empDept Values(1,'Sales');
+Insert into empDept Values(2,'Marketing');
+Insert into empDept Values(3,'Purchase');
+Insert into empDept Values(4,'Account');
+Insert into empDept Values(5,'HR');
+
+Create table empDetails
+(
+	empCode Int,
+	empName Varchar(200),
+	empAge Int,
+	empAddress Varchar(200)
+)
+
+Insert Into empDetails values(1,'Ramesh',32,'Ahmedabad');
+Insert Into empDetails values(2,'Khilan',25,'Delhi');
+Insert Into empDetails values(3,'Kaushik',23,'Kota');
+Insert Into empDetails values(4,'Chaitali',25,'Mumbai');
+Insert Into empDetails values(5,'Hardik',27,'Bhopal');
+Insert Into empDetails values(6,'Komal',22,'MP');
+Insert Into empDetails values(7,'Suresh',32,'Ahmedabad');
+Insert Into empDetails values(8,'Ram',25,'Delhi');
+Insert Into empDetails values(9,'Shyam',23,'Kota');
+Insert Into empDetails values(10,'Meenu',25,'Mumbai');
+Insert Into empDetails values(11,'Patel',27,'Bhopal');
+Insert Into empDetails values(12,'Kamal',22,'MP');
+
+select * from emp;
+/*
+1	1	2000.00	2
+2	2	1500.00	5
+3	3	2000.00	3
+4	4	6500.00	2
+5	5	8500.00	4
+6	6	4500.00	5
+7	7	2000.00	2
+8	8	1500.00	5
+9	9	2000.00	3
+10	10	6500.00	2
+11	11	8500.00	4
+12	12	4500.00	5
+*/
+
+Select * from empDept;
+/*
+1	Sales
+2	Marketing
+3	Purchase
+4	Account
+5	HR
+*/
+
+select * from empDetails;
+/*
+1	Ramesh		32	Ahmedabad
+2	Khilan		25	Delhi
+3	Kaushik		23	Kota
+4	Chaitali	25	Mumbai
+5	Hardik		27	Bhopal
+6	Komal		22	MP
+7	Suresh		32	Ahmedabad
+8	Ram			25	Delhi
+9	Shyam		23	Kota
+10	Meenu		25	Mumbai
+11	Patel		27	Bhopal
+12	Kamal		22	MP
+*/
+```
+### Create index view
+```sql
+/*
+	Creating index view
+		Step-1
+			Create a view with Schema Binding option
+		Step-2
+			Create an unique index on view.
+
+Target : Hume sare table join karke 
+			complex query ke liye Index view create karna hai
+       sath  hi Hume salary mein 1k add karke ek naya col diplay karna hai
+*/
+
+Create  View vwEmp
+	With SchemaBinding
+As
+ Select e.empId,e.empCode,e.empSalary,dp.deptName,(e.empSalary + 1000) As 'New Salary'
+	From dbo.emp e
+		Inner Join
+	dbo.empDept dp On (e.deptId = dp.deptId)
+		Inner Join
+	dbo.empDetails ed On(e.empCode = ed.empCode)
+
+-- Check Statics
+SET STATISTICS IO ON
+
+Select * from vwEmp
+/*
+eId eCo  eSal    deptName  New Salary
+1	1	2000.00	Marketing	3000.00
+2	2	1500.00	HR			2500.00
+3	3	2000.00	Purchase	3000.00
+4	4	6500.00	Marketing	7500.00
+5	5	8500.00	Account		9500.00
+6	6	4500.00	HR			5500.00
+7	7	2000.00	Marketing	3000.00
+8	8	1500.00	HR			2500.00
+9	9	2000.00	Purchase	3000.00
+10	10	6500.00	Marketing	7500.00
+11	11	8500.00	Account		9500.00
+12	12	4500.00	HR			5500.00
+
+Observation:
+ 3 table se join karke data hamare view mein aaya hai
+
+ Now check statatics in Message
+Table 'Workfile'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+Table 'Worktable'. Scan count 0, logical reads 0, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+Table 'emp'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+Table 'empDept'. Scan count 1, logical reads 1, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+Table 'empDetails'. Scan count 1, logical reads 1, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+
+
+ - Ye abhi ek Normal view ke tarah kaam kar raha hai
+	 jo ki sabhi tables ko access kar raha hai
+ - ab ye query agar baar baar hit hoti rahi
+	 to performance issue create honga
+*/
+```
+### Now check execution plan
+![Alt text](image-63.png)
+### Step -2
+![Alt text](image-64.png)
+- hamare ispar execute nhi ho raha 
+![Alt text](image-65.png)
+- ye keval enterprize option par kaam karta hai
+![Alt text](image-66.png)
+### Drop index
+![Alt text](image-67.png)
+# 39. Sql Trigger Dml
+
+
 
 
 
