@@ -8,4 +8,6 @@
 ### 36. Sql User defined function
 ### 37. Sql Views
 ### 38. Indexed  View in ms sql
-### 39. Sql Trigger Dml
+### 39. Sql Trigger Dml After Insert/update/delete
+### 40. Sql Trigger Dml InsteadOf
+### 41. Sql DDL trigger

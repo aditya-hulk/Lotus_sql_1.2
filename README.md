@@ -2155,7 +2155,523 @@ Table 'empDetails'. Scan count 1, logical reads 1, physical reads 0, page server
 ![Alt text](image-66.png)
 ### Drop index
 ![Alt text](image-67.png)
-# 39. Sql Trigger Dml
+# 39. Sql Trigger Dml After Insert/update/delete
+![alt text](image-68.png)
+- It is a special type of stored procedure.
+	- aapka koyi bhi trigger ho(DML /DDL) ye event ke upar he depend hota hai.
+	- trigger ko aap manualy execute nhi kar sakte, isiliye isko special type of procedure kaha jata hai.
+- Data ko validate karne ke liye hum rules banate hai, hum trigger ke sahare usse enforce kar sakte hai.
+- hum dml trigger ke andar data ko rollback bhi kar sakte hai.
+	- aapne koyi rule banaya hai trigger mein, aur aap data insert karne jaa rahe hai, yadi wo rules ke hisab se fit nhi baitha; to data insert nhi ho pavenga matlab rollback ho javenga.
+### Types of DML trigger
+![alt text](image-69.png)
+- After/for trigger mein
+	- data ki update/insert/merge/etc ye query pehle chalbe fir trigger fire honga.
+### Syntax
+![alt text](image-70.png) ![alt text](image-71.png)
+- replicate 
+	- ==>  to repeat or duplicate (as an experiment)
+### Query==> After insert Trigger
+![alt text](image-72.png)
+```sql
+use MyDatabase;
+
+-- Create an Employee table 
+
+Create table dbo.Employee7
+(
+	Emp_ID Int Identity(1,1) Primary key,
+	Emp_name Varchar(100) Not Null,
+	Emp_Sal decimal(10,2) Not Null,
+	Emp_DOB datetime Not Null,
+	Emp_Experience Int Not null,
+	Record_Datetime datetime Not Null
+)
+
+-- Create trigger on that table for insertion
+Create Trigger dbo.trgAfterInsert On dbo.Employee7
+After Insert -- Pehle data insert honga, fhir trigger fire honga.
+As
+Declare @emp_dob Varchar(20);
+Declare @Age Int;					--Taking local variables
+Declare @Emp_Experience Int;
+
+Select @emp_dob = i.Emp_DOB from inserted i;
+/*
+	- Inserted table se value nikal kar,
+		local variable mein daal rahe hai
+	- Inserted ye ek logical table hai, 
+		jo ki sql server trigger ke andar create karta
+	- Is table mein wo data hota hai,
+		jo aapne insert query chalayi hai, uska data iss logical table mein hota hai
+	 - Aur hum column ke through uski value
+			is table se nikal sakte
+*/
+Select @Emp_Experience = i.Emp_Experience from inserted i;
+
+/*
+Now Business Rule 
+	1) Employees age must not above 25 years.
+*/
+Set @Age = YEAR(GETDATE()) - YEAR(@emp_dob);
+
+if @Age > 25
+   Begin
+		Print 'Not Eligible: Age is greater than 25'
+		RollBack
+   End 
+/*
+Now Business Rule 
+	2) Employees should have more than 5 year of experience
+*/
+Else If @Emp_Experience < 5
+	 Begin
+		Print 'Not Eligible: Experience is less than 5 years'
+		RollBack
+   End 
+Else
+ Begin
+		Print 'Employee details inserted successfully';
+   End 
+
+Insert Into Employee7(Emp_name,Emp_Sal,Emp_DOB,Emp_Experience,Record_Datetime)
+Values ('Smith',5000,'1990-01-03',4,GETDATE());
+/*
+Error:
+Not Eligible: Age is greater than 25
+*/
+
+Insert Into Employee7(Emp_name,Emp_Sal,Emp_DOB,Emp_Experience,Record_Datetime)
+Values ('Smith',5000,'2000-01-03',4,GETDATE());
+/*
+Error:
+Not Eligible: Experience is less than 5 years
+*/
+Insert Into Employee7(Emp_name,Emp_Sal,Emp_DOB,Emp_Experience,Record_Datetime)
+Values ('Smith',5000,'2000-01-03',6,GETDATE());
+/*
+Employee details inserted successfully
+*/
+
+Select * from Employee7
+/*
+4	Smith	5000.00	2000-01-03 00:00:00.000	6	2024-03-13 11:22:53.773
+*/
+```
+### After Update Trigger
+![alt text](image-73.png)
+- jab bhi company kisi record ko update karti hai
+- to hume alag table banani hongi
+- so that hum diff kar paye. ki purana data konsa tha aur naya konsa
+```sql
+/*
+	Is table mien hum wo sari history rakhenge
+	 jo data aapka change hua hai
+*/
+Create table dbo.Employee7History
+(
+	Emp_Id Int Not Null,
+	field_name varchar(100) Not Null, -- kya chnage hua name/salary/etc
+	old_value varchar(100) Not Null,
+	new_value varchar(100) Not Null,
+	Record_Datetime datetime Not Null
+)
+
+Create Trigger dbo.trgAfterUpdate On dbo.Employee7
+After Update
+As
+Declare @emp_id Int;
+Declare @emp_name Varchar(100);
+Declare @old_emp_name Varchar(100);
+declare @emp_sal decimal(10,2);
+declare @old_emp_sal decimal(10,2);
+/*
+	Hume yaha data maintain karna hai
+		Value change hone ke pehle
+		Value change hone ke baad
+*/
+
+Select @emp_id =i.Emp_ID  from inserted i;
+Select @emp_name = i.Emp_name  from inserted i;
+Select @old_emp_name = d.Emp_name from deleted d;
+Select @emp_sal =i.Emp_Sal from inserted i;
+Select @old_emp_sal =d.Emp_Sal from deleted d;
+/*
+	- Jo data change hoke aa raha hai
+		wo inserted(ye wale logical table) mein avvenga
+	- Trigger waise
+	    insert ke case mein inserted ye logical table create karta
+		delete ke case mein trigger deleted ye logical tab create karta
+		update ke case mein trigger dono i.e inserted and deleted ye logical tab create karta
+			kyuki update mie pehele data delete hota 
+			uske baad data change hota
+		to hum deleted table se wo data nikal rahe hai 
+		   jo change hone se pehle tha
+*/
+if UPDATE(Emp_Name)
+Begin
+	Insert Into dbo.Employee7History(Emp_Id,field_name,old_value,new_value,Record_Datetime)
+	Values (@emp_id,'Emp_Name',@old_emp_name,@emp_name,GETDATE());
+End
+-- field name mien humne hardcoded value di hai
+if UPDATE(Emp_Sal)
+Begin
+	Insert Into dbo.Employee7History(Emp_Id,field_name,old_value,new_value,Record_Datetime)
+	Values (@emp_id,'Emp_Sal',@old_emp_sal,@emp_sal,GETDATE());
+End
+
+Select * from Employee7
+-- 4	Smith	5000.00	2000-01-03 00:00:00.000	6	2024-03-13 11:22:53.773
+
+Update Employee7 Set emp_name= 'King' where emp_id=4;
+
+Select * from Employee7
+--4	King	5000.00	2000-01-03 00:00:00.000	6	2024-03-13 11:22:53.773
+
+Select  * from Employee7History
+-- 4	Emp_Name	Smith	King	2024-03-13 12:01:46.747
+```
+### After delete Trigger
+![alt text](image-74.png)
+- jo record delete hua hai, uska backup backup-table mein hona mangta.
+```sql
+Create table dbo.Employee7Backup
+(
+	Emp_Id Int Not Null,
+	Emp_Name Varchar(100) Not Null,
+	Emp_Sal decimal(10,2) Not Null,
+	Emp_DOB datetime Not Null,
+	Emp_Experience Int NUll,
+	Record_Datetime datetime Not Null
+)
+
+Create Trigger dbo.trgAfterDelete On dbo.Employee7
+After Delete
+As
+Declare @emp_id Int;
+Declare @emp_name Varchar(100);
+Declare @emp_sal decimal(10,2);
+Declare @emp_dob varchar(20);
+Declare @age Int;
+Declare @emp_experience Int;
+
+Select @emp_id =d.Emp_ID from deleted d;
+Select @emp_name =d.Emp_name from deleted d;
+Select @emp_sal =d.Emp_Sal from deleted d;
+Select @emp_dob =d.Emp_DOB from deleted d;
+Select @emp_experience = d.Emp_Experience from deleted d;
+
+Insert Into Employee7Backup(Emp_Id,Emp_Name,Emp_Sal,Emp_DOB,Emp_Experience,Record_Datetime)
+Values (@emp_id,@emp_name,@emp_sal,@emp_dob,@emp_experience,GETDATE())
+
+Print 'Employee details inserted successfully'
+
+--Before Delete
+Select * from Employee7
+--4	King	5000.00	2000-01-03 00:00:00.000	6	2024-03-13 11:22:53.773
+
+Select * from Employee7Backup
+-- Empty row (query execute successfully)
+
+-- Now let's delete data form Employee7 table
+delete from Employee7 where Emp_ID=4;
+
+--After delete
+Select * from Employee7
+-- Empty row (query execute successfully)
+
+Select * from Employee7Backup
+--4	King	5000.00	2000-01-03 00:00:00.000	6	2024-03-13 12:21:41.087
+```
+# 40. Sql Trigger Dml InsteadOf
+![alt text](image-75.png)
+- Aapne Instead of Trigger use kiya hai kisi table par
+	- and us table par, yadi aap data manipulate karte hai (insert/update/delete)
+	- to wo operation aapka kabhi honga hi nhi
+- AApko trigger ke andar sari sql statements deni hai.
+
+![alt text](image-76.png)![alt text](image-77.png)
+### Scenario
+![alt text](image-78.png)
+- new Employee ki info   ko insert karna hai  with deptId
+- lekin ye deptId hamari dusri table mein hai
+- hume validate karna deptId ko deptMaster table se
+- hume alag alag dept ke hisab se uska data maintain karna hia.
+### Instead of Insert Trigger
+![alt text](image-79.png)
+- hum inserted(logical table se) data fetch karenge
+- then check further condition
+```sql
+use MyDatabase;
+
+
+Create table depts2
+(
+	dept_id Int,
+	dept_name Varchar(100)
+)
+
+insert into depts2 Values(1,'HR');
+insert into depts2 Values(2,'Account');
+insert into depts2 Values(3,'IT');
+insert into depts2 Values(4,'Sales');
+insert into depts2 Values(5,'Admin');
+
+Create table employee9
+(
+	Emp_Id Int Identity(1,1),
+	Emp_name Varchar(100),
+	Emp_Sal decimal(10,2),
+	dept_id Int
+)
+
+
+Create table hr_employee9
+(
+	Emp_Id Int,
+	Emp_name Varchar(100),
+	Emp_Sal decimal(10,2),
+	dept_id Int
+)
+
+Create table act_employee9
+(
+	Emp_Id Int,
+	Emp_name Varchar(100),
+	Emp_Sal decimal(10,2),
+	dept_id Int
+)
+
+Select * from depts2;
+/*
+1	HR
+2	Account
+3	IT
+4	Sales
+5	Admin
+*/
+
+Select * from employee9;
+Select * from hr_employee9;
+Select * from act_employee9;
+/*
+	Query executed but data is not available
+	All are empty
+*/
+
+Create trigger trdAddEmployee9
+On employee9
+Instead of Insert -- jb aap employee8 table mein insert karenge tab ye trigger fire honga.
+as
+Begin
+	Declare @dept_Id Int;
+	Declare @emp_Id Int;
+
+	Select @dept_Id = i.dept_id from inserted i; -- ye logical table hai
+
+	-- yaha hum master table mein deptId check kar rahe hai
+	If Not Exists(Select dept_id from depts2 where dept_id=@dept_Id)
+	Begin
+		Raiserror('Invalid department id. Statement Terminated Ok',16,1);
+		return
+	End
+	--Yadi id exist karti hai tab insert
+	Insert into employee9(Emp_name,dept_id,Emp_Sal)
+		Select i.Emp_name,i.dept_id,i.Emp_Sal from inserted i;
+	  -- Trigger ke body ke andar ye sql query chalaengi
+
+	  set @emp_Id = SCOPE_IDENTITY();
+	  /*ye emp_id employee9 table ke andar
+	     auto increment hai
+		 to hume last inserted id nikalna hai uar usse local variable mein assign 
+		 karna hai*/
+
+	  If @dept_Id =1
+	  Begin
+			Insert into hr_employee9(Emp_Id,Emp_name,dept_id,Emp_Sal)
+			Select @emp_Id,i.Emp_name,i.dept_id,i.Emp_Sal from inserted i;
+	  End
+
+	   If @dept_Id =2
+	  Begin
+			Insert into act_employee9(Emp_Id,Emp_name,dept_id,Emp_Sal)
+			Select @emp_Id,i.Emp_name,i.dept_id,i.Emp_Sal from inserted i;
+	  End
+End
+
+drop trigger trdAddEmployee9
+
+Select * from depts2;
+/*
+1	HR
+2	Account
+3	IT
+4	Sales
+5	Admin
+*/
+
+--Aisa deptId insert karte jo exist nhi karta
+Insert Into employee9(Emp_name,Emp_Sal,dept_id)
+Values('King',3333.0,7);
+/*
+Our Trigger runs and provide error
+Invalid department id. Statement Terminated Ok
+*/
+
+--Change deptId to 1
+Insert Into employee9(Emp_name,Emp_Sal,dept_id)
+Values('Alice',3333.0,1);
+
+select * from employee9;
+--4	Alice	3333.00	1
+
+Select * from hr_employee9;
+--4	Alice	3333.00	1
+
+Select * from act_employee9
+-- empty row but query executed.
+
+--Now change dept id=2
+Insert Into employee9(Emp_name,Emp_Sal,dept_id)
+Values('Smith','655',2);
+
+select * from employee9;
+/*
+4	Alice	3333.00	1
+5	Smith	655.00	2
+*/
+
+Select * from hr_employee9;
+--4	Alice	3333.00	1
+
+Select * from act_employee9
+--5	Smith	655.00	2
+```
+### Instead of UpdateTrigger
+![alt text](image-80.png)
+- yadi aap employee table ko update karte samay uski id hi change kar rahe ho tab error thorw karenga..
+	- since update aap particular employee ko karonge who has certain id.
+- yadi upadate mein empid nhi liya to update operation successfull.
+
+![alt text](image-81.png)
+```sql
+
+create trigger trgUpdateEmployee
+ on employee9
+Instead of Update
+as
+Begin 
+	Declare @emp_id Int;
+	Declare @emp_name Varchar(100);
+	Declare @emp_sal decimal(10,2);
+
+	Select @emp_id =i.Emp_Id, @emp_name=i.Emp_name, @emp_sal=i.Emp_Sal  from inserted i;
+
+	If UPDATE(Emp_Id)
+	 Begin
+		Raiserror('emp_id cannot be changed. Statement terminated OK',16,1);
+		return
+	 End
+	Else
+	 Begin
+		Update employee9
+		 set Emp_name=@emp_name,
+		     Emp_Sal=@emp_sal
+			 where Emp_Id = @emp_id;		 
+	 End
+End
+
+select * from employee9;
+/*
+eid enam  esal     deptid
+4	Alice	3333.00	1
+5	Smith	655.00	2
+*/
+
+-- aap employeeId update karne jaa rahe hai
+     -- trigger hamara error dena mangta
+Update employee9 set Emp_Id=9,
+	Emp_name='Corner', Emp_Sal=4500
+	where Emp_Id=4;
+-- emp_id cannot be changed. Statement terminated OK
+     -- badhiya trigger error mara
+
+select * from employee9;
+/*
+4	Alice	3333.00	1
+5	Smith	655.00	2
+*/
+
+--Now we remove empId
+Update employee9 set
+	Emp_name='Corner', Emp_Sal=4500
+	where Emp_Id=4;
+
+select * from employee9;
+/*
+4	Corner	4500.00	1
+5	Smith	655.00	2
+
+Ye update keval employee9 ke liye hi chalenga
+  kyuki humne wohi table specify kiya hai.
+*/
+```
+### Instead of DeleteTrigger
+![alt text](image-82.png)
+- hum future refrence ke liye ek history table ko maintain karenge
+- jisme deleted data store honga
+- ye data hume deleted logical table se mil javenga.
+- eg
+ 	- hum yaha jo bhi data delete karegne wo EmployeeHistory mein store ho javenga
+ 	 - but wo original table se delete nhi karenge.
+```sql
+Create table Employee9History
+(
+	Emp_Id Int,
+	Emp_name Varchar(100),
+	Emp_Sal decimal(10,2),
+	dept_id Int
+)
+
+
+create trigger dbo.trgDeleteEmployee
+ on dbo.employee9
+Instead of Delete
+as
+ Begin
+	Insert Into Employee9History(Emp_Id,Emp_name,Emp_Sal,dept_id)
+	Select d.Emp_Id,d.Emp_name,d.Emp_Sal,d.dept_id from deleted d;
+ End
+
+ select * from employee9;
+ /*
+4	Corner	4500.00	1
+5	Smith	655.00	2
+ */
+
+select * from Employee9History;
+-- nothing is there
+
+delete from employee9 where Emp_Id=4;
+
+ select * from employee9;
+ /*
+4	Corner	4500.00	1
+5	Smith	655.00	2
+ */
+
+select * from Employee9History;
+--4	Corner	4500.00	1
+```
+# 41. Sql DDL trigger
+
+
+
+
+
+
+
+
 
 
 
