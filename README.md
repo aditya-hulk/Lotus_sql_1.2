@@ -2666,6 +2666,227 @@ select * from Employee9History;
 # 41. Sql DDL trigger
 
 
+### Create a new Database
+![alt text](image-83.png)
+```sql
+use MyDatabase1;
+
+-- Creating a table
+Create table test
+(
+	Id Int
+)
+
+/*
+Ab hum yaha security lagana chahte hai
+	ki koyi bhi user is db mein table create na kar sake
+
+DDL Trigger which will restrict creating a new table 
+			on a speciic db
+*/
+Use MyDatabase1   --hum is db ke liye Trigger create kar rahe hai
+Go
+Create Trigger TrgPreventCreateTable
+ ON Database                -- This line deciding the scope of trigger which db(Mydb1)
+For Create_Table  -- This is an event
+As
+ Begin
+	Print 'YOU cannot create table in this database'
+	Rollback Transaction
+ End
+ --Createed successfully
+
+use MyDatabase1
+Go
+Create table test2
+(
+	Id Int
+)
+/*
+Error:
+YOU cannot create table in this database
+
+Ab aap nayi table is db mein create nhi kar sakte
+   jab tak trigger hai
+*/
+```
+![alt text](image-84.png)
+### Multiple events in Trigger
+```sql
+--Trigger with Multiple events
+Use MyDatabase1   
+Go
+Alter Trigger TrgPreventCreateTable
+ ON Database                
+For CREATE_TABLE,ALTER_TABLE,DROP_TABLE  
+As
+ Begin
+	Print 'YOU cannot CREATE OR ALTER OR DROP a table in this database'
+	Rollback Transaction
+ End
+
+Drop table test;
+/*
+Message : 
+YOU cannot CREATE OR ALTER OR DROP a table in this database
+*/
+```
+### DDL Events Group
+![alt text](image-85.png)
+- Aapne individual events use kiye, but isme list aapki badh sakti hai
+- so instead of this use groups of events.
+```sql
+-- Use of Event Group in Trigger
+Use MyDatabase1   
+Go
+Create Trigger TrgEventGroup
+ ON Database                
+For DDL_TABLE_EVENTS  --It contain group of individual events(Create,Alter & delete)
+As
+ Begin
+	Print 'Use of EventGroup: YOU cannot CREATE OR ALTER OR DROP a table in this database'
+	Rollback Transaction
+ End
+
+Use MyDatabase1   
+Go
+Drop table test;
+-- Use of EventGroup: YOU cannot CREATE OR ALTER OR DROP a table in this database
+
+
+Create table test2
+(
+	Id Int
+)
+--Use of EventGroup: YOU cannot CREATE OR ALTER OR DROP a table in this database
+
+Alter table test
+	add email varchar(100)
+--Use of EventGroup: YOU cannot CREATE OR ALTER OR DROP a table in this database
+```
+### Use of Event Group on Server level
+![alt text](image-86.png)
+- Create a new Database namely db1,db2 & db3 
+```sql
+--Use of Event Group on Server level
+                            -- U won't use stuff like MyDatabase1 
+							-- since it is server level trigger
+Create Trigger TrgServerAll
+ ON ALL SERVER                
+For DDL_TABLE_EVENTS 
+As
+ Begin
+	Print 'Use of EventGroup Server Level: YOU cannot CREATE OR ALTER OR DROP a table in ANY database'
+	Rollback Transaction
+ End
+/*
+command executed
+
+observation: 
+   Server level ke liye 
+    aapne koyi database use nhi kiya 
+	jo generally hum DDl trigger bante samay use karte the.
+*/
+
+ Use db1
+ Go
+ Create table Test
+ (
+	Id Int
+ )
+ --Use of EventGroup Server Level: YOU cannot CREATE OR ALTER OR DROP a table in ANY database
+
+
+ Use db2
+ Go
+ Create table Test
+ (
+	Id Int
+ )
+ --Use of EventGroup Server Level: YOU cannot CREATE OR ALTER OR DROP a table in ANY database
+
+ Use db3
+ Go
+ Create table Test
+ (
+	Id Int
+ )
+ --Use of EventGroup Server Level: YOU cannot CREATE OR ALTER OR DROP a table in ANY database
+
+
+ drop trigger TrgServerAll
+ ON ALL SERVER  
+ ```
+ ### Track Schema changes event
+ ![alt text](image-87.png)
+ - Ye Audit Trigger hota hai.
+  	- suppose aapko apne db ke upar activity record karni hai
+	- aapko check karna hai, ki kon aapke db ke upar table create/alter/delete kar raha hai
+	- user ka name, uska date time kya tha
+- Ye sab activity aap track kar sakte, for that we have EVENTDATA()  name ka inbuild function hota hai
+- jab bhi koyi activity hoti hai, is funciton mein sql server xml format mein sari entry fill kar deta.
+- waha se aap isko utha ke use kar sakte
+```sql
+Use db1   -- kis db mein table create kiya
+ Go
+ Create table TableAudit
+ (
+	DatabaseName nvarchar(250),
+	TableName nvarchar(250),
+	EventType nvarchar(250),
+	LoginName nvarchar(250),
+	SqlCommand nvarchar(2500),
+	AuditDateTime datetime
+ )
+
+ Create Trigger trgAuditTableChangesInAllDatabase
+  ON All Server										--Server level par track karenge
+For Create_Table,Alter_Table,Drop_Table
+As
+ Begin
+	Declare @EventData Xml
+	Select @EventData = EVENTDATA()
+
+	Insert Into db1.dbo.TableAudit(DatabaseName,TableName,EventType,LoginName,SqlCommand,AuditDateTime)
+	Values(  
+	@EventData.value('(/EVENT_INSTANCE/DatabaseName)[1]','NVARCHAR(250)'), 
+	@EventData.value('(/EVENT_INSTANCE/ObjectName)[1]','NVARCHAR(250)'),
+	@EventData.value('(/EVENT_INSTANCE/EventType)[1]','NVARCHAR(250)'),
+	@EventData.value('(/EVENT_INSTANCE/LoginName)[1]','NVARCHAR(250)'),
+	@EventData.value('(/EVENT_INSTANCE/TSQLCommand)[1]','NVARCHAR(2500)'),
+	GETDATE()
+	)
+ End
+
+ drop trigger trgAuditTableChangesInAllDatabase
+  ON All Server	
+ 
+ Use db2
+ Go
+ Create table Test2
+ (
+	Id Int
+ )
+
+ Use db1
+ Go
+ Create table Test3
+ (
+	Id Int
+ )
+
+
+ Select * from db1.dbo.TableAudit;
+ /*
+db2	Test2	CREATE_TABLE	LAPTOP-KT6INJC9\Asus	Create table Test2   (   Id Int   )	2024-03-14 13:47:06.930
+db1	Test3	CREATE_TABLE	LAPTOP-KT6INJC9\Asus	Create table Test3   (   Id Int   )	2024-03-14 13:47:34.647
+ */
+```
+### Another way to find table
+![alt text](image-88.png)![alt text](image-89.png)
+# 42. Sql trigger LogOn
+
+
 
 
 
