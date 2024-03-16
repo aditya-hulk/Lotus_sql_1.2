@@ -3048,6 +3048,343 @@ exec sp_helpindex 'test';
 ![alt text](image-93.png)
 - U can use Ctr + L shortcut for execution plan
 ### Now index scan and index seek
+```sql
+Create table test2
+(
+	Id int,
+	FName Varchar(100)
+)
+
+DECLARE @first AS INT = 1
+
+WHILE(@first <= 800000)
+BEGIN
+    INSERT INTO test2 VALUES(@first,Concat('Lotus',@first))
+    SET @first += 1
+END
+
+select * from test2
+/*
+1	Lotus1
+2	Lotus2
+3	Lotus3
+4	Lotus4
+5	Lotus5
+6	Lotus6
+
+800000 data will be inserted successfully.
+*/
+
+--Truncate table test2;
+
+-- We need to check kya is test2 table par koyi index hai
+exec sp_helpindex 'test2'
+-- The object 'test2' does not have any indexes, or you do not have permissions.
+
+--We need to check statics abhi kaha se fetch kar raha hai
+Set Statistics IO On
+Select * from test2;
+/*
+Table 'test2'. Scan count 1, logical reads 2895, physical reads 0,
+
+- db par nhi jaa raha hai ==>physical reads 0
+- ye cache se hi read kar riya hai ==>logical reads 2895
+    mane sara data aapk 2895 in block mein divide hai.
+800K data ko itne 2895  blocks mein divide kar diya  jise data pages bhi kaha jata hai	
+*/
+```
+#### Check execution plan of it
+![alt text](image-94.png)
+- Abhi bhi table scan hi use kar raha hai, kyuki iske upar koyi bhi index nahi hai
+#### Table scan kab use hota hai
+- 1) table ka size chota
+- 2) table par  koyi bhi index nhi laga hona chaiye.
+### Now let's create an index and check
+```sql
+Create Clustered Index id_parts_id
+on test2(id);
+
+--Check index is created or not
+exec sp_helpindex 'test2';
+/*
+indexName    Index_desc                     index_keys  
+id_parts_id	clustered located on PRIMARY	Id
+
+Now execute query and check it execution plan
+*/
+set statistics IO ON
+Select * from test2;
+/*
+Table 'test2'. Scan count 1, logical reads 2968, physical reads 0
+ Data cache se aaya hai ==>	logical reads 2968
+*/
+```
+![alt text](image-95.png)
+- Ye use kar raha hai Clustered scan
+- Optimizer check karta hai, yadi table k upar koyi index laga hai, tab usse Optimizer use karta hai.
+### for index seek
+##### ab yadi hum koyi condition lagate hai & check Execution plan
+![alt text](image-96.png)![alt text](image-97.png)
+- AAp koyi condition laga rahe hai, tab aap apne result ko narrow/filter kar rahe hai
+- aur apne us col par index laga rakha hai, is case mein index seek use honnga.
+### Diff
+#### Index Scan
+![alt text](image-98.png)
+- aapne having aur where clause use nhi kiya, aur index lagaya hua hai
+- tab aap index scan use kar rahe hai
+
+![alt text](image-99.png)
+#### Index Seek
+![alt text](image-100.png)
+- vice vera is seek
+
+![alt text](image-101.png)![alt text](image-102.png)
+### Dif
+![alt text](image-103.png)
+- agar table ka data 90,100% lana hai tab use Index scan/table scan
+- limited data lana hai,tab index seek
+- yadi table ke upar index laga rakha hai, tab index scan vice versa table scan
+- table scan se fast index scan aur index scan se fast index seek.
+# 44. Sql query: Pivot/Convert data from row to column
+
+
+### Practical
+```sql
+use MyDatabase1;
+
+Create table Sales
+(
+	id Int,
+	Year Int,
+	product Varchar(100),
+	sales int
+)
+
+Insert Into Sales Values(1,2021,'Pen',89);
+Insert Into Sales Values(3,2022,'Pen',88);
+Insert Into Sales Values(3,2022,'Pencil',67);
+Insert Into Sales Values(4,2021,'Mouse',68);
+Insert Into Sales Values(5,2020,'CPU',65);
+Insert Into Sales Values(6,2022,'CPU',78);
+Insert Into Sales Values(7,2021,'Pencil',76);
+Insert Into Sales Values(8,2022,'Mouse',56);
+Insert Into Sales Values(9,2022,'CPU',78);
+Insert Into Sales Values(10,2021,'Pen',100);
+Insert Into Sales Values(11,2020,'Pen',11);
+Insert Into Sales Values(12,2020,'Pencil',90);
+Insert Into Sales Values(13,2021,'Pen',89);
+Insert Into Sales Values(14,2022,'Pen',88);
+Insert Into Sales Values(15,2022,'Pencil',67);
+Insert Into Sales Values(16,2021,'Mouse',68);
+Insert Into Sales Values(17,2020,'CPU',65);
+Insert Into Sales Values(18,2022,'CPU',78);
+Insert Into Sales Values(19,2023,'Pencil',76);
+Insert Into Sales Values(20,2022,'Mouse',56);
+Insert Into Sales Values(21,2022,'CPU',78);
+
+select * from Sales;
+/*
+id	year	prod	sales
+1	2021	Pen		89
+3	2022	Pen		88
+3	2022	Pencil	67
+4	2021	Mouse	68
+5	2020	CPU		65
+6	2022	CPU		78
+7	2021	Pencil	76
+8	2022	Mouse	56
+9	2022	CPU		78
+10	2021	Pen		100
+11	2020	Pen		11
+12	2020	Pencil	90
+13	2021	Pen		89
+14	2022	Pen		88
+15	2022	Pencil	67
+16	2021	Mouse	68
+17	2020	CPU		65
+18	2022	CPU		78
+19	2023	Pencil	76
+20	2022	Mouse	56
+21	2022	CPU		78
+*/
+
+Select * from Sales order by Year,product;
+/*
+5	2020	CPU		65
+17	2020	CPU		65
+11	2020	Pen		11
+12	2020	Pencil	90
+
+16	2021	Mouse	68
+4	2021	Mouse	68
+1	2021	Pen		89
+10	2021	Pen		100
+13	2021	Pen		89
+7	2021	Pencil	76
+
+9	2022	CPU		78
+6	2022	CPU		78
+18	2022	CPU		78
+21	2022	CPU		78
+20	2022	Mouse	56
+8	2022	Mouse	56
+3	2022	Pen		88
+14	2022	Pen		88
+15	2022	Pencil	67
+3	2022	Pencil	67
+
+19	2023	Pencil	76
+
+Target: Hume reporting karni hai
+ year mein total sales kitni hue hai
+	2020 mein CPU ki total sales kitni
+
+For this use concept of Pivot
+*/
+```
+### Explore
+```sql
+
+Select * from Sales
+Pivot(
+		Sum([sales])   -- aggregate function (sales ke upar aggrgate karna hai)
+		For [product]   -- Product hamara pivot col hai
+		             -- is column ke base par hamara row column mein convert honga.
+		In(
+			[Pen],           -- this are products
+			[Pencil],
+			[Mouse],
+			[CPU]
+		)
+	) As PivotTable    -- temprary ResultSet
+/*
+id Year    Pen     Pencil  Mouse    CPU
+5	2020	NULL	NULL	NULL	65
+11	2020	11		NULL	NULL	NULL
+12	2020	NULL	90		NULL	NULL
+17	2020	NULL	NULL	NULL	65
+
+1	2021	89		NULL	NULL	NULL
+4	2021	NULL	NULL	68		NULL
+7	2021	NULL	76		NULL	NULL
+10	2021	100		NULL	NULL	NULL
+13	2021	89		NULL	NULL	NULL
+16	2021	NULL	NULL	68		NULL
+
+3	2022	88		67		NULL	NULL
+6	2022	NULL	NULL	NULL	78
+8	2022	NULL	NULL	56		NULL
+9	2022	NULL	NULL	NULL	78
+14	2022	88		NULL	NULL	NULL
+15	2022	NULL	67		NULL	NULL
+18	2022	NULL	NULL	NULL	78
+20	2022	NULL	NULL	56		NULL
+21	2022	NULL	NULL	NULL	78
+
+19	2023	NULL	76		NULL	NULL
+
+Observation:
+  Jiasa socha tha viase result nhi aa raha
+kyu
+  kyuki iske andar id hai
+  id unique hai har row ke andar
+   karke har row ka ek group ban raha hai.
+
+So you have to use derived table syntax for Pivot.
+Derived basically wo col nikal kar denga
+  jiske sath khelna hai
+ Basically derived table apni outer query ko 
+	result set lakar deta jiki usse jarurat hai.
+Aur hum reporting result set par hi bana rhe hai.
+*/
+```
+### Using derived sytax
+```sql
+Select * from 
+(Select year,product,sales from Sales) ResultSet  -- ye resultSet outer query ko jake fhir pivot chalbe
+Pivot(
+		Sum([sales])   
+		For [product]  		            
+		In(
+			[Pen],          
+			[Pencil],
+			[Mouse],
+			[CPU]
+		)
+	) As PivotTable    
+/*
+Year  Pen     Pencil Mouse CPU
+2020	11		90	NULL	130
+2021	278		76	136		NULL
+2022	176		134	112		312
+2023	NULL	76	NULL	NULL
+*/
+
+-- Yai hum column name change kar de
+Select * from 
+(Select year,product,sales from Sales) ResultSet  -- ye resultSet outer query ko jake fhir pivot chalbe
+Pivot(
+		Sum([sales])   
+		For [product]  		            
+		In(
+			[Penis],          
+			[Pencil]			
+		)
+	) As PivotTable    
+/*
+Year  Penis   Pencil
+2020	NULL	90
+2021	NULL	76
+2022	NULL	134
+2023	NULL	76
+
+col Penis ke andar apko null mila
+  Make sure col ke name col value se match karne ko hona
+*/
+```
+![alt text](image-104.png)
+#### year aur product ke hisab se grouping ho rahi hai.
+### Dynamic Pivot Table
+- product remove ya add hota hia, tab aapko query ke andar change marna honga
+- since col name sare hardcoded hai.
+```sql
+
+Create Proc TestPivot
+@PivtCol Varchar(100),
+@PivtColList Varchar(200)
+As 
+ Begin
+	Declare @Qry Varchar(4000);
+	Set @Qry = 'Select * from 
+			  (Select year,product,sales from Sales) ResultSet  
+			  Pivot(
+				Sum([sales])   
+				For ['+ @PivtCol +']  		            
+				In('+@PivtColList+')
+				) As PivotTable'
+ End
+ Exec(@Qry) 
+
+ --drop proc TestPivot
+
+TestPivot @PivtCol='product',@PivtColList='Pen'
+/*
+2020	11
+2021	278
+2022	176
+2023	NULL
+*/
+
+TestPivot @PivtCol='product',@PivtColList='Pen,Pencil'
+/*
+2020	11		90
+2021	278		76
+2022	176		134
+2023	NULL	76
+*/
+```
+### Unpivot table
+
 
 
 

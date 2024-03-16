@@ -13,3 +13,4 @@
 ### 41. Sql DDL trigger
 ### 42. Sql trigger LogOn
 ### 43. Table Scan, Index Scan and Index Seek
+### 44. Sql query: Pivot/Convert data from row to column
