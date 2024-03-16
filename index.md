@@ -12,3 +12,4 @@
 ### 40. Sql Trigger Dml InsteadOf
 ### 41. Sql DDL trigger
 ### 42. Sql trigger LogOn
+### 43. Table Scan, Index Scan and Index Seek

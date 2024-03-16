@@ -2887,6 +2887,172 @@ db1	Test3	CREATE_TABLE	LAPTOP-KT6INJC9\Asus	Create table Test3   (   Id Int   )	
 # 42. Sql trigger LogOn
 
 
+### Practical
+```sql
+
+/*
+ We need some info, jiske basis par hum logon trigger create kar sake.
+
+  - yaha hum dm_exec_sessions ek view use karenge
+  - ye aapka inbuild view hai
+  - is view ke through hum connection ki info nikal sakte
+*/
+
+select original_login_name, is_user_process, status,* from
+	sys.dm_exec_sessions where
+	 is_user_process=1 order by login_time desc;
+/*
+original_login_name				 is_user status
+NT Service\SQLTELEMETRY$SQLEXPRESS	1	sleeping	53	2024-03-16 07:09:29.770	LAPTOP-KT6INJC9	SQLServerCEIP									5988	7	.Net SqlClient Data Provider		0x0106000000000005500000002C4559766DEF9A2F8E23EA83AE7C7F71254CB2CC	NT SERVICE\SQLTELEMETRY$SQLEXPRESS	NT SERVICE		SQLTELEMETRY$SQLEXPRESS	sleeping	0x	47		4	238		254		2	2024-03-16 07:09:29.770	2024-03-16 07:09:30.023	72		0	1145	1	-1			us_english	mdy	7	1	0	1	0	1	1	1	1	2	-1	-10	0	0	0x0106000000000005500000002C4559766DEF9A2F8E23EA83AE7C7F71254CB2CC	NT Service\SQLTELEMETRY$SQLEXPRESS	NULL	NULL	NULL	1	1	1	0	0	NULL
+LAPTOP-KT6INJC9\Asus				1	running		52	2024-03-16 07:06:49.767	LAPTOP-KT6INJC9	Microsoft SQL Server Management Studio - Query	15596	7	Framework Microsoft SqlClient Da	0x010500000000000515000000354DB934FAF99AE66988FEB8E9030000			LAPTOP-KT6INJC9\Asus				LAPTOP-KT6INJC9	Asus					running		0x	0		4	6		6		2	2024-03-16 07:14:27.140	2024-03-16 07:06:50.090	0		0	0		1	2147483647	us_english	mdy	7	1	1	1	0	1	1	1	1	2	-1	0	1	0	0x010500000000000515000000354DB934FAF99AE66988FEB8E9030000			LAPTOP-KT6INJC9\Asus				NULL	NULL	NULL	1	10	1	0	0	NULL
+LAPTOP-KT6INJC9\Asus				1	sleeping	62	2024-03-13 10:16:56.930	LAPTOP-KT6INJC9	Microsoft SQL Server Management Studio			15596	7	Framework Microsoft SqlClient Da	0x010500000000000515000000354DB934FAF99AE66988FEB8E9030000			LAPTOP-KT6INJC9\Asus				LAPTOP-KT6INJC9	Asus					sleeping	0x	1420	5	3446	4250	2	2024-03-14 13:49:49.517	2024-03-14 13:49:49.780	2398	76	192493	1	-1			us_english	mdy	7	1	0	1	0	1	1	1	1	2	-1	0	1	0	0x010500000000000515000000354DB934FAF99AE66988FEB8E9030000			LAPTOP-KT6INJC9\Asus				NULL	NULL	NULL	1	10	1	0	0	NULL
+
+- Yaha aapke 3 connection suru hai
+- 2 sleeping hai 1 running
+	 - running kahe to current window mein humne jo execute kiya hai
+*/	
+```
+#### Ab hum yadi nayi query/window crate kare aur fhir se query execute kare
+![alt text](image-90.png)
+```sql
+select original_login_name, is_user_process, status,session_id from
+	sys.dm_exec_sessions where
+	 is_user_process=1 order by login_time desc;
+/*
+original_login_name				 is_user		status	session_id	
+NT Service\SQLTELEMETRY$SQLEXPRESS	1			sleeping	51
+LAPTOP-KT6INJC9\Asus				1			sleeping	70
+LAPTOP-KT6INJC9\Asus				1			running		52
+LAPTOP-KT6INJC9\Asus				1			sleeping	62
+
+- query mein * use kiye toh pura detail description de deta.
+*/
+```
+### Create a Logon trigger
+##### Target : More than 5 connection/new query is not allowed
+```sql
+/*
+	Create Trigger TriggerName
+	  Provide Trigger Scope i.e ON db/all server
+		Event type (for what  Login/or for other)
+*/
+
+Create Trigger CheckLogin5Times   
+ On All Server			
+	For Logon   -- jab bhi login Activity hongi, ye trigger fire honga
+As
+ Begin
+	Declare @login Nvarchar(100)   -- local variable
+	Set @login = ORIGINAL_LOGIN();  --  inbuild function, ye login info i.e User ka name 
+	          -- is local variable mein store kar denga.
+
+	If(Select COUNT(*) From sys.dm_exec_sessions where is_user_process=1 And
+					original_login_name=@login) > 5
+	  Begin
+		Print 'More than 5 connection is not allowed - Connection By ' + @login + 'Failed'
+		RollBack
+	  End	
+ End
+ ```
+ ##### trigger location
+ ![alt text](image-91.png)
+ ##### If you fire new query you  got this error message
+ ![alt text](image-92.png)
+ # 43. Table Scan, Index Scan and Index Seek
+
+
+ ### Practical of Table Scan
+ ```sql
+ 
+use MyDatabase1;
+
+create table test
+(
+	Id Int,
+	Product Varchar(100)
+)
+
+Insert Into test Values(1001,'Pen');
+Insert Into test Values(1010,'Mouse');
+Insert Into test Values(1003,'Pad');
+Insert Into test Values(1001,'Keyboard');
+Insert Into test Values(1004,'Pen');
+Insert Into test Values(1001,'Mouse');
+Insert Into test Values(1006,'CPU');
+
+Select * from test;
+/*
+1001	Pen
+1010	Mouse
+1003	Pad
+1001	Keyboard
+1004	Pen
+1001	Mouse
+1006	CPU
+*/
+
+/*
+	Hume physical read and logical reads 
+	  ke count ko check karna hai so
+	Set Statistics IO ON
+*/
+
+Set Statistics IO ON
+Select * from test;
+/*
+Message tab :==
+Table 'test'. Scan count 1, logical reads 1, physical reads 1,
+	page server reads 0, read-ahead reads 0, page server read-ahead reads 0,
+		lob logical reads 0, lob physical reads 0, lob page server reads 0, l
+			ob read-ahead reads 0, lob page server read-ahead reads 0.
+
+Scan count 1, logical reads 1, physical reads 1
+-Yadi aap pehle baar execute kar rahe ho
+ - to data db se read hua => physical reads 1
+ - phir cache mein store hua ==>logical reads 1
+*/
+
+Set Statistics IO ON
+Select * from test where Id=1001;
+/*
+Message tab:
+Table 'test'. Scan count 1, logical reads 1, physical reads 0,
+
+jab condition check hue,
+   tab cache se hi data bjeha gya na ki db ko hit kiya
+*/
+
+Set Statistics IO ON
+Select * from test;
+/*
+Table 'test'. Scan count 1, logical reads 1, physical reads 0
+ 
+ -- same here also as we see in above reason.
+
+ Data ka size small hia.
+
+Target:  Hume check karna hai ispar koyi index hai ya nahi
+	use system procedure/ sys function/inbuild function
+*/
+exec sp_helpindex 'test';
+/*
+ Message
+  - Bahut kuch display kiya
+  - but last line
+  The object 'test' does not have any indexes, or you do not have permissions.
+
+    it confirms that this test table does not contain index.
+*/
+```
+#### Now we check execution plan
+![alt text](image-93.png)
+- U can use Ctr + L shortcut for execution plan
+### Now index scan and index seek
+
+
+
+
+
 
 
 
