@@ -14,3 +14,7 @@
 ### 42. Sql trigger LogOn
 ### 43. Table Scan, Index Scan and Index Seek
 ### 44. Sql query: Pivot/Convert data from row to column
+### 45. Sql Sequence
+### 46. Dynamic Sql
+### 47. Find nth highest salary.
+### 49. Sql Server Profile.

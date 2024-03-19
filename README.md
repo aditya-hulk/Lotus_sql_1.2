@@ -3384,6 +3384,770 @@ TestPivot @PivtCol='product',@PivtColList='Pen,Pencil'
 */
 ```
 ### Unpivot table
+- Unpivot table aapka reverse hota hai, jo ki aapke columns ko row mein convert karta hai.
+```sql
+use MyDatabase1;
+
+--Let's create temprary table
+Declare  @Ptab  table    -- Here Declare temprary table
+(
+	[Year] int,
+	Pen Varchar(100),
+	Pencil Varchar(100),
+	CPU Varchar(100),
+	Mouse Varchar(100)
+)
+Insert Into @Ptab
+ Select * from
+  (Select YEAR,product,sales from Sales) ResultSet
+ Pivot(
+		Sum([sales])
+		For [product]
+		IN(
+			[Pen],
+			[Pencil],
+			[CPU],
+			[Mouse]
+		)
+	) as PivotTable
+
+Select * from @Ptab 
+UNPIVOT
+(
+	Sales For Name IN(Pen,Pencil,CPU,Mouse)
+)As Tab2
+
+/*
+Year  Sales Name
+2020	11	Pen
+2020	90	Pencil
+2020	130	CPU
+
+2021	278	Pen
+2021	76	Pencil
+2021	136	Mouse
+
+2022	176	Pen
+2022	134	Pencil
+2022	312	CPU
+2022	112	Mouse
+
+2023	76	Pencil
+
+ek particular year mein,
+  particular product
+   ka sales kitna hua tha.. 
+basically columns ko row mein convert kiya
+*/
+```
+# 45. Sql Sequence
+
+
+### Practical
+```sql
+use MyDatabase1;
+
+/*
+	Suppose School hai
+	 usme multiple classes hai
+	  jisme hume student ki entry karni hai
+*/
+Create table Class_A
+(
+	RollNo Int Identity(1,1),    -- autoincrement, explicitly insert nhi kar sakte.
+	Enrollment_No Int Not Null,
+	FName Varchar(100)
+)
+
+Create table Class_B
+(
+	RollNo Int Identity(1,1),
+	Enrollment_No Int Not Null,
+	FName Varchar(100)
+)
+
+Insert Into Class_A(Enrollment_No,FName) Values(1000,'Tina');
+Insert Into Class_B(Enrollment_No,FName) Values(1000,'Sion');
+
+Select * from Class_A;
+--1	1000	Tina
+
+Select * from Class_B;
+-- 1	1000	Sion
+
+/*
+Observation :
+  Alag alag class mien roll no same ho sakte hai.
+
+  But,
+  Enrollment number aapka pure school mein unique hota hia
+
+  Enrollment number yadi generate karte hai identity col se
+   so usko dusri table ke sath share nahi kar sakte
+*/
+```
+### Solution via Sequence
+![alt text](image-105.png)
+```sql
+
+Create sequence enrol_seq
+Start With 1000
+Increment By 1
+Minvalue 1000
+Maxvalue 1005
+Cycle
+
+Truncate Table Class_A;
+Truncate Table Class_B;
+
+Insert Into Class_A(Enrollment_No,FName) Values(Next Value FOR enrol_seq,'Tina');
+Insert Into Class_B(Enrollment_No,FName) Values(Next Value FOR enrol_seq,'Sion');
+
+Select * from Class_A;
+--1	1000	Tina
+
+Select * from Class_B;
+--1	1001	Sion
+
+-- If u execute multiple times
+Insert Into Class_A(Enrollment_No,FName) Values(Next Value FOR enrol_seq,'A');
+Insert Into Class_B(Enrollment_No,FName) Values(Next Value FOR enrol_seq,'B');
+Insert Into Class_A(Enrollment_No,FName) Values(Next Value FOR enrol_seq,'C');
+Insert Into Class_B(Enrollment_No,FName) Values(Next Value FOR enrol_seq,'D');
+Insert Into Class_A(Enrollment_No,FName) Values(Next Value FOR enrol_seq,'E');
+Insert Into Class_B(Enrollment_No,FName) Values(Next Value FOR enrol_seq,'F');
+Insert Into Class_A(Enrollment_No,FName) Values(Next Value FOR enrol_seq,'G');
+Insert Into Class_B(Enrollment_No,FName) Values(Next Value FOR enrol_seq,'H');
+/*
+For Class A
+1	1000	Tina
+2	1002	A
+3	1004	C
+4	1000	E
+5	1002	G
+
+For Calss B
+1	1001	Sion
+2	1003	B
+3	1005	D
+4	1001	F
+5	1003	H
+
+cycle hone ke wajah se enrollment number reapeat ho rahe hai
+*/
+```
+### Explore
+```sql
+Create sequence enrol_seq2
+Start With 1000
+Increment By 1
+Minvalue 1000
+Maxvalue 10000
+NO Cycle
+
+Truncate Table Class_A;
+Truncate Table Class_B;
+
+Insert Into Class_A(Enrollment_No,FName) Values(Next Value FOR enrol_seq2,'Tina');
+Insert Into Class_B(Enrollment_No,FName) Values(Next Value FOR enrol_seq2,'Sion');
+Insert Into Class_A(Enrollment_No,FName) Values(Next Value FOR enrol_seq2,'A');
+Insert Into Class_B(Enrollment_No,FName) Values(Next Value FOR enrol_seq2,'B');
+Insert Into Class_A(Enrollment_No,FName) Values(Next Value FOR enrol_seq2,'C');
+Insert Into Class_B(Enrollment_No,FName) Values(Next Value FOR enrol_seq2,'D');
+Insert Into Class_A(Enrollment_No,FName) Values(Next Value FOR enrol_seq2,'E');
+Insert Into Class_B(Enrollment_No,FName) Values(Next Value FOR enrol_seq2,'F');
+Insert Into Class_A(Enrollment_No,FName) Values(Next Value FOR enrol_seq2,'G');
+Insert Into Class_B(Enrollment_No,FName) Values(Next Value FOR enrol_seq2,'H');
+
+Select * from Class_A;
+Select * from Class_B;
+/*
+For class A
+1	1000	Tina
+2	1002	A
+3	1004	C
+4	1006	E
+5	1008	G
+
+For class B
+1	1001	Sion
+2	1003	B
+3	1005	D
+4	1007	F
+5	1009	H
+*/
+```
+ # 46. Dynamic Sql
+
+
+ ### Practical
+ ```sql
+ use MyDatabase1;
+
+Create Table empAcct
+(
+	empId Int,
+	empName Varchar(100),
+	deptId Varchar(50),
+	salary Int,
+	joinYear Int
+)
+
+Insert Into empAcct Values(1001,'John','Acct',3000,2021);
+Insert Into empAcct Values(1002,'Smith','Acct',4000,2020);
+Insert Into empAcct Values(1003,'King','Acct',6000,2019);
+Insert Into empAcct Values(1004,'Milia','Acct',5500,2021);
+Insert Into empAcct Values(1005,'Linda','Acct',5500,2022);
+Insert Into empAcct Values(1006,'Tony','Acct',5500,1990);
+Insert Into empAcct Values(1007,'Joshep','Acct',7800,2020);
+Insert Into empAcct Values(1009,'Alice','Acct',2100,2021);
+
+Create Table empHr
+(
+	empId Int,
+	empName Varchar(100),
+	deptId Varchar(50),
+	salary Int,
+	joinYear Int
+)
+
+Insert Into empHr Values(1001,'John','HR',3000,2021);
+Insert Into empHr Values(1002,'Smith','HR',4000,2020);
+Insert Into empHr Values(1003,'King','HR',6000,2019);
+Insert Into empHr Values(1004,'Milia','HR',5500,2021);
+Insert Into empHr Values(1005,'Linda','HR',5500,2022);
+Insert Into empHr Values(1006,'Tony','HR',5500,1990);
+Insert Into empHr Values(1007,'Joshep','HR',7800,2020);
+Insert Into empHr Values(1009,'Alice','HR',2100,2021);
+
+Create Table empSales
+(
+	empId Int,
+	empName Varchar(100),
+	deptId Varchar(50),
+	salary Int,
+	joinYear Int
+)
+
+Insert Into empSales Values(1001,'John','Sales',3000,2021);
+Insert Into empSales Values(1002,'Smith','Sales',4000,2020);
+Insert Into empSales Values(1003,'King','Sales',6000,2019);
+Insert Into empSales Values(1004,'Milia','Sales',5500,2021);
+Insert Into empSales Values(1005,'Linda','Sales',5500,2022);
+Insert Into empSales Values(1006,'Tony','Sales',5500,1990);
+Insert Into empSales Values(1007,'Joshep','Sales',7800,2020);
+Insert Into empSales Values(1009,'Alice','Sales',2100,2021);
+
+select * from empAcct;
+/*
+1001	John	Acct	3000	2021
+1002	Smith	Acct	4000	2020
+1003	King	Acct	6000	2019
+1004	Milia	Acct	5500	2021
+1005	Linda	Acct	5500	2022
+1006	Tony	Acct	5500	1990
+1007	Joshep	Acct	7800	2020
+1009	Alice	Acct	2100	2021
+*/
+select * from empHr;
+/*
+1001	John	HR	3000	2021
+1002	Smith	HR	4000	2020
+1003	King	HR	6000	2019
+1004	Milia	HR	5500	2021
+1005	Linda	HR	5500	2022
+1006	Tony	HR	5500	1990
+1007	Joshep	HR	7800	2020
+1009	Alice	HR	2100	2021
+*/
+select * from empSales;
+/*
+1001	John	Sales	3000	2021
+1002	Smith	Sales	4000	2020
+1003	King	Sales	6000	2019
+1004	Milia	Sales	5500	2021
+1005	Linda	Sales	5500	2022
+1006	Tony	Sales	5500	1990
+1007	Joshep	Sales	7800	2020
+1009	Alice	Sales	2100	2021
+
+Target:
+Hume ek aise query design karni hai
+ jisse hum apni requirement ke hisab se 
+  kisi bhi table ka data fetch kar saku.
+*/
+
+Use MyDatabase1
+Go
+Declare @table varchar(100)      --declare variables
+Declare @ColList Varchar(100)
+Declare @Query Varchar(400)
+Set @table='empAcct';                  -- Yaha humne assign kiya empAcct
+set @ColList='empId,empName,deptId,salary,joinYear';
+Set @Query= CONCAT('Select ',@ColList,' from ',@table);
+Print @Query
+Exec (@Query)
+--Execute (@Query)
+/*
+Result:
+1001	John	Acct	3000	2021
+1002	Smith	Acct	4000	2020
+1003	King	Acct	6000	2019
+1004	Milia	Acct	5500	2021
+1005	Linda	Acct	5500	2022
+1006	Tony	Acct	5500	1990
+1007	Joshep	Acct	7800	2020
+1009	Alice	Acct	2100	2021
+
+Message
+Select empId,empName,deptId,salary,joinYear from empAcct
+*/
+
+Use MyDatabase1
+Go
+Declare @table varchar(100)     
+Declare @ColList Varchar(100)
+Declare @Query Varchar(400)
+Set @table='empHr';                 
+set @ColList='empId,empName,deptId,salary,joinYear';
+Set @Query= CONCAT('Select ',@ColList,' from ',@table);
+Print @Query
+Exec (@Query)
+/*
+Result:
+1001	John	HR	3000	2021
+1002	Smith	HR	4000	2020
+1003	King	HR	6000	2019
+1004	Milia	HR	5500	2021
+1005	Linda	HR	5500	2022
+1006	Tony	HR	5500	1990
+1007	Joshep	HR	7800	2020
+1009	Alice	HR	2100	2021
+
+Message:
+Select empId,empName,deptId,salary,joinYear from empHr
+
+Hum requirement apni kam bhi kar sakte hai
+*/
+Use MyDatabase1
+Go
+Declare @table varchar(100)     
+Declare @ColList Varchar(100)
+Declare @Query Varchar(400)
+Set @table='empHr';                 
+set @ColList='empId,empName,deptId';
+Set @Query= CONCAT('Select ',@ColList,' from ',@table);
+Print @Query
+Exec (@Query)
+/*
+Result:
+1001	John	HR
+1002	Smith	HR
+1003	King	HR
+1004	Milia	HR
+1005	Linda	HR
+1006	Tony	HR
+1007	Joshep	HR
+1009	Alice	HR
+
+Message:
+Select empId,empName,deptId from empHr
+*/
+```
+### More Explore- Create Stored Procedure
+```sql
+Use MyDatabase1
+Go
+Create Proc Test3
+ @table varchar(100),         -- Observation: Procedure mein variables ko declare nhi karte. Cross check
+ @ColList Varchar(100)              -- comma se separate karte hai
+	/*Oh, Basically ye 2 paramaeter hai is Test1 procedure ke
+	   mane jab bhi aap Test1 proc call karonge
+	     so aapko ye 2 parameter bhi dene honge.*/			
+As
+ Begin
+	Declare @Query Varchar(400)     -- block ke andar declare karna padta
+	Set @Query= CONCAT('Select ',@ColList,' from ',@table);
+	Print @Query
+	Exec (@Query)
+ End
+
+
+-- Calling procedure
+Test3 @table='empAcct',@ColList='empId,empName,deptId,joinYear,salary';
+/*
+Result:
+1001	John	Acct	2021	3000
+1002	Smith	Acct	2020	4000
+1003	King	Acct	2019	6000
+1004	Milia	Acct	2021	5500
+1005	Linda	Acct	2022	5500
+1006	Tony	Acct	1990	5500
+1007	Joshep	Acct	2020	7800
+1009	Alice	Acct	2021	2100
+
+Message:
+Select empId,empName,deptId,joinYear,salary from empAcct
+*/
+
+Test3 @table='empHr',@ColList='empId,empName,deptId';
+/*
+Result:
+1001	John	HR
+1002	Smith	HR
+1003	King	HR
+1004	Milia	HR
+1005	Linda	HR
+1006	Tony	HR
+1007	Joshep	HR
+1009	Alice	HR
+
+Message:
+Select empId,empName,deptId from empHr
+*/
+
+
+Test3 @table='empSales',@ColList='empId,deptId,empName,salary,joinYear';
+/*
+Result:
+1001	Sales	John	3000	2021
+1002	Sales	Smith	4000	2020
+1003	Sales	King	6000	2019
+1004	Sales	Milia	5500	2021
+1005	Sales	Linda	5500	2022
+1006	Sales	Tony	5500	1990
+1007	Sales	Joshep	7800	2020
+1009	Sales	Alice	2100	2021
+
+Message:
+Select empId,deptId,empName,salary,joinYear from empSales
+*/
+```
+### Some more modifications:
+```sql
+Use MyDatabase1
+Go
+Alter Proc Test3
+ @table varchar(100),         
+ @ColList Varchar(100),   
+ @Ename Varchar(100)
+As
+ Begin
+	Declare @Query Varchar(400)    
+	Set @Query= CONCAT('Select ',@ColList,' from ',@table,' where empName=',@Ename);
+	Print @Query
+	Exec (@Query)
+ End
+
+Test3 @table='empSales',@ColList='empId,deptId,empName,salary,joinYear',@Ename='John';
+/*
+Result:
+	 Invalid column name 'John'.  -->Yaha Error aa gya
+
+Message:
+Select empId,deptId,empName,salary,joinYear from empSales where empName=John
+
+Kyuki John ye single quote mein nhi hai.
+*/
+
+--Add 4 single quote
+Use MyDatabase1
+Go
+Alter Proc Test3
+ @table varchar(100),         
+ @ColList Varchar(100),   
+ @Ename Varchar(100)
+As
+ Begin
+	Declare @Query Varchar(400)    
+	Set @Query= CONCAT('Select ',@ColList,' from ',@table,' where empName=',''''+@Ename+'''');
+	Print @Query
+	Exec (@Query)
+ End
+
+Test3 @table='empSales',@ColList='empId,deptId,empName,salary,joinYear',@Ename='John';
+/*
+Result:
+1001	Sales	John	3000	2021
+
+Message:
+Select empId,deptId,empName,salary,joinYear from empSales where empName='John'
+*/
+```
+### Adressing Multiple quote problem
+```sql
+
+Use MyDatabase1
+Go
+Alter Proc Test3
+ @table varchar(100),         
+ @ColList Varchar(100),   
+ @Ename Varchar(100)
+As
+ Begin
+	Declare @Query NVarchar(400)    
+	Set @Query= CONCAT('Select ',@ColList,' from ',@table,' where empName=@empName');
+	Print @Query
+	
+	Exec sp_executesql @Query,N'@empName Varchar(100)',@empName=@Ename
+	/* 
+	sp_executesql:
+	Ye aapka ek extended procedure hai
+	     Iske andar aap parameter ko define kar sakte
+		  ye map kar denga parameter ko query-parameter ke sath*..		   
+	
+	Exec command mein ye possible nhi tha,
+	 hum waha concat use kar rahe the
+
+	 Yadi hum chate hai, ki query ke andar hi  parameter ko defined karke
+		 usse map kar diya jave..
+		  so use sp_executesql stored procedure
+
+	Exec sp_executesql @Query,N'@empName Varchar(100)',Parmeter mein value assign karna
+	*/
+ End
+
+
+ Test3 @table='empSales',@ColList='empId,deptId,empName,salary,joinYear',@Ename='John';
+ /*
+ Result:
+ 1001	Sales	John	3000	2021
+
+ message:
+ Select empId,deptId,empName,salary,joinYear from empSales where empName=@empName
+ */
+ ```
+ # 47. Find nth highest salary.
+
+
+ ### Practical
+ ```sql
+ use MyDatabase1
+Go
+Create Table employee
+(
+	empId Int,
+	salary Int
+)
+
+Insert Into employee Values(1, 3000);
+Insert Into employee Values(2, 2345);
+Insert Into employee Values(3, 7666);
+Insert Into employee Values(4, 3000);
+Insert Into employee Values(5, 7666);
+Insert Into employee Values(6, 5000);
+Insert Into employee Values(7, 6000);
+
+Select * from employee;
+/*
+Result:
+1	3000
+2	2345
+3	7666
+4	3000
+5	7666
+6	5000
+7	6000
+
+Target:
+	Ab yadi hum highest salary ko top par lana chahte hai..
+	 use concept of order by  with desending
+*/
+Select * from employee order by salary desc;
+/*
+3	7666
+5	7666
+7	6000
+6	5000
+4	3000
+1	3000
+2	2345
+
+Target : 
+   Same via Max function
+    ye maximum value retrun karta hai
+*/
+Select MAX(salary) from employee;
+--7666
+
+--via Top
+Select Top 1 * from employee order by salary desc;
+/*
+3	7666
+*/
+```
+## Using Advance function, find highest sal
+### Via Subquery
+![alt text](image-106.png)
+- subquery ko inner query,nested query or child query bhi kehte hai
+	- main query ke body ke andar dusri query hoti hai jise inner query bhi kehte hai.
+	- child query ye paranthesis mein likhi jati hai.
+```sql
+/*
+	Using - Subquery
+	Find the 2nd highest salary 
+*/
+
+Select MAX(salary) from employee where salary 
+  < (Select MAX(salary) from employee);
+ /*
+ 6000
+
+ Cross check is this 2nd highest salary
+ */
+ Select * from Employee order by salary desc;
+ /*
+ 3	7666
+5	7666
+7	6000
+6	5000
+4	3000
+1	3000
+2	2345
+
+Target :
+	To find 3rd highest salary.
+ */
+
+ Select MAX(salary) from employee where salary 
+  < (Select MAX(salary) from employee  where salary
+   < (Select MAX(salary) from employee));
+-- 5000
+```
+### Via Set operator
+![alt text](image-107.png)
+- hum except operator ko use karke db se ek subset create kar sakte.
+- Humne Max salary alag kar diya result set se, aur ek salary ka set mil gya
+	- bus wahi se max salary fetch kar di wo ho gyi 2nd highest salary
+```sql
+/*
+	2nd highest salary  via set operator in sub query
+*/
+Select Max(salary) from employee where salary In
+	(Select salary from employee EXCEPT 
+							Select Max(salary) from employee);	
+/*
+6000
+
+Except operator ye main dataset se ek subset aapka create kar devenga.
+Cross check
+*/
+Select * from Employee order by salary desc;
+/*
+3	7666
+5	7666
+7	6000
+6	5000
+4	3000
+1	3000
+2	2345
+*/
+```
+### via correlated subquery
+![alt text](image-108.png)
+- Main query mein aapki 10 rows hai, aur usse  1 value pass hoti hai subquery mein
+- to subquery usko 10 time process karengi
+- phir 2nd value pass hue main query se, again subquery process them 10 times.
+
+![alt text](image-109.png)
+```sql
+/*
+	2nd highest salary using correlated subquery
+*/
+
+Select salary from employee pq where 2=
+  (select count(Distinct salary) from Employee cq 
+		where pq.salary <= cq.salary);
+/*
+6000
+*/
+```
+
+![alt text](image-110.png)![alt text](image-111.png)![alt text](image-112.png)![alt text](image-113.png)
+### via CTE and dense rank function
+![alt text](image-114.png)
+- CTE mein dense function ke through aap kisi bhi position ki salary nikal sakte.
+- read slide
+```sql
+/*
+	3rd highest salary via CTE
+*/
+With ctResult 
+As
+(
+	Select empId,Salary,Dense_Rank() Over (Order by salary desc) As SalaryRank
+	 from employee
+)
+Select Top 1 empId,salary from ctResult where SalaryRank= 3;
+--6	5000
+
+-- Requrie 2nd highest salary
+With ctResult 
+As
+(
+	Select empId,Salary,Dense_Rank() Over (Order by salary desc) As SalaryRank
+	 from employee
+)
+Select Top 1 empId,salary from ctResult where SalaryRank= 2;
+--7	6000
+
+Select empId,Salary,Dense_Rank() Over (Order by salary desc) As SalaryRank
+	 from employee
+/*
+Id sal    SalaryRank
+3	7666	1
+5	7666	1
+7	6000	2
+6	5000	3
+4	3000	4
+1	3000	4
+2	2345	5
+
+	Dense_Rank() function har row ko rank deta hai
+	 but ye data partition i.e group par kam karta hai
+	 Over ke sath kam karta hai
+	  Over(order by sal)
+
+	  Mane salary ka group banake usse descending order mein arrange kar
+	   rahe and then uspar rank laga rahe hai
+*/
+```
+# 49. Sql Server Profile.
+### What is sql profiler?
+![alt text](image-115.png)
+- ye db ki har activity ko trace/record karta hai
+- aapki query ko bahut dhire chal rahi hai, ya db mein kahi lock aa gya hai.. us case mein aap isse istemal kar sakte
+### when to use ?
+![alt text](image-116.png)
+- Advisible Not to use sql profiler always, kyuki memory bahut leta hai
+### Points to remember
+![alt text](image-117.png)
+- isko remote server par run kariye
+### Practical
+![alt text](image-118.png)![alt text](image-119.png)
+#### Trace properties
+![alt text](image-121.png)![alt text](image-122.png)
+- jab save file par click kiya
+
+![alt text](image-120.png)![alt text](image-123.png)![alt text](image-124.png)![alt text](image-125.png)![alt text](image-126.png)![alt text](image-127.png)![alt text](image-128.png)
+- ab db mein jake query ko fire karta hu
+
+![alt text](image-129.png)![alt text](image-130.png)
+![alt text](image-131.png)
+- ab suppose hum isse stop karte hai & file me check karte hai
+
+![alt text](image-132.png)
+- Right clk and Open to profiler mein khul gyai
+- Humen table mein bhi data save kiya tha.Ab table data check karte hai.
+
+
+
+
+
+
+
+
+
 
 
 
