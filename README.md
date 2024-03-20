@@ -4139,7 +4139,59 @@ Id sal    SalaryRank
 ![alt text](image-132.png)
 - Right clk and Open to profiler mein khul gyai
 - Humen table mein bhi data save kiya tha.Ab table data check karte hai.
+##### Go to MyDatabase -> tabel -> MyTrace
+![alt text](image-133.png)
+- so ye pura structure profile ne create kiya.
+### Now about template
+- Template aapka ek group hota hai, jisme predefined event classes aur column hote hai;
+	- later on aap unko modify kar sakte hai.
+- Go to event selection 
 
+![alt text](image-134.png)![alt text](image-135.png)![alt text](image-136.png)![alt text](image-137.png)
+### Create a new template
+![alt text](image-138.png)![alt text](image-139.png)![alt text](image-140.png)![alt text](image-141.png)![alt text](image-142.png)![alt text](image-143.png)
+- is tarh se aap apna template create kar saakte.
+### About Event Selection
+![alt text](image-144.png)
+- Template ke andar event classes hoti hai and col hote hai.
+- jab bhi koyi event hoti hai, like procedure call etc. tab wo trace hoti hai.
+- RPC completed - Remote procedure call completed.
+- More than 150 events are there
+- Multiple T-SQL as a batch execute karenga.
+- Audit login ==> User login info
+### About column
+![alt text](image-145.png)
+- Event classes ki info ye cols ke format mein aati hai.
+- Aapne query fire kari, event hua to usme data kya tha, ye TextData col specify karta.
+- Jisne procedure ko execute kiya, uska login name ye login_name col info provide karta.
+- read slide
+- More than 60 data columns 
+
+![alt text](image-147.png)![alt text](image-148.png)
+- ye query chalayi and trace check kiya
+
+![alt text](image-146.png)
+### Next Target: Hume keval MyDatabase ke upar ki activity monitor karni hai na ki other db.
+- so apply filter for that
+
+![alt text](image-149.png)![alt text](image-150.png)![alt text](image-151.png)![alt text](image-152.png)![alt text](image-153.png)![alt text](image-154.png)![alt text](image-155.png)
+
+- Now fire query
+
+![alt text](image-156.png)![alt text](image-157.png)![alt text](image-158.png)
+### Hume keval particular Table ko trace karna hai.
+![alt text](image-159.png)![alt text](image-160.png)![alt text](image-161.png)![alt text](image-162.png)![alt text](image-164.png)![alt text](image-163.png)![alt text](image-165.png)![alt text](image-166.png)![alt text](image-167.png)![alt text](image-168.png)
+### Duration of query
+- apki query kitna samay le rahi hai.
+
+![alt text](image-169.png)![alt text](image-170.png)![alt text](image-171.png)![alt text](image-172.png)![alt text](image-173.png)
+
+- Hume keval us query ko trace karna hai jiska duration 3k milliseconds se jayada ho.
+
+![alt text](image-174.png)![alt text](image-175.png)![alt text](image-176.png)![alt text](image-177.png)![alt text](image-178.png)
+### Duration of qeury
+![alt text](image-179.png)![alt text](image-180.png)![alt text](image-181.png)![alt text](image-182.png)
+# 50. Sql database schema
 
 
 

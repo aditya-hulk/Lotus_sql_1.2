@@ -18,3 +18,4 @@
 ### 46. Dynamic Sql
 ### 47. Find nth highest salary.
 ### 49. Sql Server Profile.
+### 50. Sql database schema
