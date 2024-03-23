@@ -19,3 +19,7 @@
 ### 47. Find nth highest salary.
 ### 49. Sql Server Profile.
 ### 50. Sql database schema
+### 51. Sql Blocking Query
+### 52. Creating Job in sql server.
+
+

@@ -4192,6 +4192,246 @@ Id sal    SalaryRank
 ### Duration of qeury
 ![alt text](image-179.png)![alt text](image-180.png)![alt text](image-181.png)![alt text](image-182.png)
 # 50. Sql database schema
+![alt text](image-191.png)
+### What is sql dbo user?
+- Jab bhi aap First time db create karte,
+	- so by defualt uska User create hota hia
+	- plus (+) schma bhi create hota hai.
+	- uska name hota hai dbo(database owner)
+	- It has all privelage
+	- it has role of system admin
+	- It acts as a permanant user, mane aap isko delete nhi kar sakte.
+	- aap khud se user bana sakte hai and usko delete bhi kar sakte hai.
+
+### Practical: Jab bhi aap database create karte ho; to by default uska User  dbo aur uska schema i.e dbo create hota hai
+![alt text](image-183.png)![alt text](image-184.png)
+- jab bhi naya db create karte hai to same name se i.e dbo se uska user aur scheama create hote hai.
+- Aur jab bhi aap database object eg table,view etc ye sab schema ke andar store hote hai.
+- Schema also called as db collection object.
+- Schema ka owner hota hai dbo.
+- aap yadi dusri schema nhi create karte hai, to by defualt dbo schema aapke sare objects ko hold karti hai.
+```sql
+
+Create Database DemoSchema;
+
+/*
+ Apke db mein kon konsi schema hai.
+*/
+Select s.name As Schema_Name, u.name As Schema_Owner
+ from sys.schemas s 
+       Inner Join
+	  sys.sysusers  u  on u.uid = s.principal_id  
+	    order by s.name;
+/*
+Schema_Name          Schama_Owner
+
+db_accessadmin		db_accessadmin
+db_backupoperator	db_backupoperator
+db_datareader		db_datareader
+db_datawriter		db_datawriter
+db_ddladmin			db_ddladmin
+db_denydatareader	db_denydatareader
+db_denydatawriter	db_denydatawriter
+db_owner			db_owner
+db_securityadmin	db_securityadmin
+
+dbo					dbo
+
+guest				guest
+INFORMATION_SCHEMA	INFORMATION_SCHEMA
+sys					sys
+*/
+```
+
+![alt text](image-185.png)![alt text](image-186.png)
+### Hum diff schema kyu create kare.
+- Create separate logical group i.e Schema, jaise HR, Accounts,Sales. 
+	- ab yadi hume Accounts mein data search karna hai, toh different logical group mein search nhi karenga wo.
+	- sirf accounts ke group men data search karegna.
+	- So our performance will increase.
+- database table aap same name se create nhi kar sakte.
+	- but diff schema mein same name se table create karte aata
+	- eg. PTS.User in SMV 
+- Security, yadi sales schema ka data bahut confidential hai, to aap us particular schama par jyada security apply kar sakte.
+- Naye user create karke aap usse ye schema alot kar sakte
+	- jaise naye user create hua, usko aap sirf account schema dena chahte, aap usse HR aur Sales schema nhi dena chahte
+	- so you can map it with new user.
+### Practical
+![alt text](image-187.png)
+- Yadi humne koyi schema use nhi kiya, to by defualt schema honga dbo.
+##### Ab yadi hum isi table ko dubara create kare.
+```sql
+use DemoSchema;
+Go
+Create Table Emp
+(
+	Id Int,
+	FName Varchar(100)
+)
+
+-- Try to create one more time
+Create Table Emp
+(
+	Id Int,
+	FName Varchar(100)
+)
+/*
+Error
+There is already an object named 'Emp' in the database.
+*/
+```
+##### Observation: Db ke andar same name se dusra object create nhi ho sakta.
+### Create a schema 
+![alt text](image-188.png)
+```sql
+Create Schema Account;
+Create Table Account.Emp
+(
+	Id Int,
+	FName Varchar(100)
+)
+
+Create Schema Sales;
+Create Table Sales.Emp
+(
+	Id Int,
+	FName Varchar(100)
+)
+
+Create Schema HR;
+Create Table HR.Emp
+(
+	Id Int,
+	FName Varchar(100)
+)
+
+-- Inserting Values in diff schema
+Insert Into Emp Values(1,'dbo defualt Value');
+/*
+	Yaha hume Emp table ke samne koyi schema name nhi likha
+	 so by defualt vo dbo schema mein javenga.
+*/
+Select * from Emp;
+-- 1	dbo defualt Value
+
+
+Insert Into Account.Emp Values(1,'Account related Value');
+Select * from Account.Emp;  -- Also called as fully qualified name Account.Emp
+-- 1	Account related Value
+
+Insert Into Sales.Emp Values(1,'Sales related Value');
+Select * from Sales.Emp;
+-- 1	Sales related Value
+
+Insert Into HR.Emp Values(1,'HR related Value');
+Select * from HR.Emp;
+-- 1	HR related Value
+```
+### Humne jo schema create kiye hai Account,Sales etc uska owner kon hai.
+- by defualt db ke andar ek hi user hai i.e DBo
+	-  so dbo hi unka owner honga by defualt.
+
+![alt text](image-189.png)![alt text](image-190.png)
+#### aap search button par jakar dusre schama ko ye user i.e dbo assign kar sakte hai.(NO Prac for this also not require)
+- same for other schemas.
+# 51. Sql Blocking Query
+![alt text](image-192.png)![alt text](image-193.png)![alt text](image-194.png)
+```sql
+use DemoSchema;
+
+Create Table TableA
+(
+	Id Int,
+	Name NVarchar(50)
+)
+
+Insert Into TableA Values(101,'John');
+Insert Into TableA Values(102,'Mike');
+
+--Truncate Table TableA
+Select * from TableA;
+/*
+101	John
+102	Mike
+
+Target:
+  - Ab hume MIke ka jo name hai wo change karna hai.
+*/
+Begin Transaction
+	Update TableA Set Name='Mke Tailor' where Id=102
+
+/*
+Message:
+ 1 row affected
+
+Observation:
+ - Abi humne yaha par Nahi Commit kiya
+ - or na RollBack
+ - Par aapki Transaction open hai i.e beginTransaction.
+
+Yadi hum Naye connection open karke 
+  Select * from TableA kare tab kya result aavenga.
+*/
+```
+![alt text](image-195.png)
+- aise case mein dusra connection aapke table ko access nhi kar sakta.
+- since your transaction is open.
+### how to find out block query?
+#### via system stored procedure.
+![alt text](image-196.png)
+####  via execution request
+![alt text](image-197.png)
+#### via Activity monitor
+![alt text](image-198.png)![alt text](image-199.png)![alt text](image-200.png)![alt text](image-201.png)
+#### via Reports
+![alt text](image-202.png)![alt text](image-203.png)
+### How to kill this blocking session.
+#### via Activity Monitor
+![alt text](image-205.png)![alt text](image-206.png)![alt text](image-207.png)
+#### via committing the transaction
+```sql
+use DemoSchema;
+
+Select * from TableA;
+/*
+101	John
+102	Mike
+*/
+
+Begin Transaction
+ Update TableA set Name='Mike Update' where id=102
+Commit
+
+Select * from TableA;
+/*
+101	John
+102	Mike Update
+*/
+```
+***Open  new window and fetch this same transaction***
+![alt text](image-208.png)
+#### via kill process in new window
+```sql
+
+Begin Transaction
+ Update TableA set Name='Mike Again Update1' where id=102
+
+Select * from TableA;
+/*
+101	John
+102	Mike Again Update1
+
+
+Here we are Updating the transaction without committing it
+  so when any new window approach this
+   it is in blocking state.
+*/
+```
+![alt text](image-209.png)![alt text](image-210.png)![alt text](image-211.png)![alt text](image-212.png)
+# 52. Creating Job in sql server.
+
+
+
 
 
 
