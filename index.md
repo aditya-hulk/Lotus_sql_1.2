@@ -21,5 +21,7 @@
 ### 50. Sql database schema
 ### 51. Sql Blocking Query
 ### 52. Creating Job in sql server.
+### 53. How to write complex sql query.
+### 54. Sql pivot Complex query
 
 

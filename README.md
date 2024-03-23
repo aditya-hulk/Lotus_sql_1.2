@@ -4429,6 +4429,97 @@ Here we are Updating the transaction without committing it
 ```
 ![alt text](image-209.png)![alt text](image-210.png)![alt text](image-211.png)![alt text](image-212.png)
 # 52. Creating Job in sql server.
+![alt text](image-213.png)![alt text](image-214.png)![alt text](image-215.png)![alt text](image-216.png)![alt text](image-217.png)![alt text](image-218.png)![alt text](image-219.png)![alt text](image-220.png)![alt text](image-221.png)![alt text](image-222.png)![alt text](image-223.png)![alt text](image-224.png)![alt text](image-225.png)![alt text](image-226.png)![alt text](image-227.png)![alt text](image-228.png)![alt text](image-229.png)
+# 53. How to write complex sql query.
+![alt text](image-230.png)
+```sql
+use DemoSchema;
+
+Create table transactions
+(
+	trans_id Int,
+	userId  Varchar(10),
+	trans_date date,
+	productId Varchar(100),
+	quantity Int
+)
+
+Insert Into transactions Values(1,'U1','2021-11-11','Mouse',20);
+Insert Into transactions Values(2,'U2','2020-12-16','Keyboard',5);
+Insert Into transactions Values(3,'U1','2021-11-11','CPU',8);
+Insert Into transactions Values(4,'U4','2020-12-16','Pen',9);
+Insert Into transactions Values(5,'U2','2020-12-17','Pencil',8);
+Insert Into transactions Values(6,'U2','2020-12-17','Pad',8);
+Insert Into transactions Values(7,'U4','2020-12-18','Hard Disk',7);
+Insert Into transactions Values(8,'U3','2020-12-19','Software',8);
+Insert Into transactions Values(9,'U3','2020-12-19','Stand',10);
+
+Select * from transactions;
+/*
+1	U1	2021-11-11	Mouse		20
+2	U2	2020-12-16	Keyboard	5
+3	U1	2021-11-11	CPU			8
+4	U4	2020-12-16	Pen			9
+5	U2	2020-12-17	Pencil		8
+6	U2	2020-12-17	Pad			8
+7	U4	2020-12-18	Hard Disk	7
+8	U3	2020-12-19	Software	8
+9	U3	2020-12-19	Stand		10
+
+Target: 
+ Hume un users ki list nikalni hai jinhone multiple days par
+   shopping kari hai.
+*/
+Select COUNT(userId) from transactions
+ Having COUNT(Distinct trans_date) > 1;
+
+/*
+
+Hume Unique date nikalni hai  
+  user ki 
+jisse pata lage ki multiple date ke upar shopping ki hai.
+Note: Where clause ke sath aggregate function ko use nhi kar sakte.
+
+Result:
+9
+
+Analysis:
+  Having clause hamesha group by ke sath chalta hai. 
+    mane group ke upar wo count karta hai.
+*/
+Select COUNT(userId) from transactions
+-- 9 
+
+Select COUNT(userId) from transactions
+Group by userId
+Having COUNT(Distinct trans_date) > 1;
+/*
+3   -- ek user ne 3 baar shopping kari hai
+2    -- ek ne 2 bar
+*/
+
+Select userId,COUNT(userId) from transactions
+Group by userId
+Having COUNT(Distinct trans_date) > 1;
+/*
+U2	3
+U4	2
+
+Target: 
+ Hume keval user ka count nikalna hai
+  use the concept of derived query
+*/
+
+Select COUNT(userId) from 
+(
+	Select userId from transactions
+	Group by userId
+	Having COUNT(Distinct trans_date) > 1 -- ye hamare table create karke denga jisme 2 
+				 -- row hai and fhir hum 2 row ko count karenge.
+)  As DerivedTab
+--2
+```
+# 54. Sql pivot Complex query
 
 
 
