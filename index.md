@@ -23,5 +23,7 @@
 ### 52. Creating Job in sql server.
 ### 53. How to write complex sql query.
 ### 54. Sql pivot Complex query
+### 55. Diff between Execute And Sp_ExceuteSQl
+
 
 

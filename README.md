@@ -4520,6 +4520,422 @@ Select COUNT(userId) from
 --2
 ```
 # 54. Sql pivot Complex query
+ ![alt text](image-231.png)![alt text](image-232.png)![alt text](image-233.png)![alt text](image-234.png)
+ ### Practical-Format-1
+ ```sql
+ use DemoSchema;
+
+Create Table Product
+(
+	Id Int,
+	companyName Varchar(100),
+	productName Varchar(100),
+	price Int
+)
+
+Insert Into Product Values(1,'James','Fridge',897);
+Insert Into Product Values(2,'Cosmos','Cabel',200);
+Insert Into Product Values(3,'York','CPU',8000);
+Insert Into Product Values(4,'Vita','Car',2000);
+Insert Into Product Values(5,'Setu','VCD',10000);
+
+Select * from Product;
+/*
+Id  ComName ProdName Price
+1	James	Fridge	897
+2	Cosmos	Cabel	200
+3	York	CPU		8000
+4	Vita	Car		2000
+5	Setu	VCD		10000
+
+Target:
+  Ye jo ProductName col hai wo hamara row mein convert ho jave.
+
+Hume Pivot table ke andar 
+  ek temprary resultSet ko supply karna honga.
+
+*/
+
+Select
+	 [companyName],
+	 [productName],
+	 [price]
+	from Product
+/*
+James	Fridge	897
+Cosmos	Cabel	200
+York	CPU		8000
+Vita	Car		2000
+Setu	VCD		10000
+
+Ye temprary result set hum Pivot ko denge
+*/
+
+Select * from
+(
+	Select
+	 [companyName],
+	 [productName],
+	 [price]
+	from Product
+) As Result
+Pivot(
+	Sum([price])
+	 For [productName]   -- wo col name jise row/col mein convert karna hai
+	In (
+		[Fridge],
+		[Cabel],
+		[CPU],
+		[Car],
+		[VCD]
+	)
+) As PivotTable
+/*
+comName	Fridge Cabel	CPU		Car		VCD
+
+Cosmos	NULL	200		NULL	NULL	NULL
+James	897		NULL	NULL	NULL	NULL
+Setu	NULL	NULL	NULL	NULL	10000
+Vita	NULL	NULL	NULL	2000	NULL
+York	NULL	NULL	8000	NULL	NULL
+*/
+```
+### Practical -Format-2
+```sql
+/*
+Target:
+  Null ki bajaye ek custom value ko display karna hai
+
+Sol Analysis:
+  Pivot sirf convert karta row to col 
+ So data hamara result set i.e temprary table se hi aa riya hai.
+*/
+Select companyName,
+ Case When Fridge IS Null Then 'NA' else Fridge End As Fridge,
+ Cabel,CPU,Car,VCD from
+(
+	Select
+	 [companyName],
+	 [productName],
+	 [price]
+	from Product
+) As Result
+Pivot(
+	Sum([price])
+	 For [productName]   
+	In (
+		[Fridge],
+		[Cabel],
+		[CPU],
+		[Car],
+		[VCD]
+	)
+) As PivotTable
+/*
+Error
+Message
+Conversion failed when converting the varchar value 'NA' to data type int.
+
+ kyuki Fridge ki value Int mein aavengi..
+  Usee Hume Varchar mein convert karna honga.
+*/
+Select companyName,
+ Case When Fridge IS Null Then 'NA' else Cast(Fridge As varchar(100)) End As Fridge,
+ Cabel,CPU,Car,VCD from
+(
+	Select
+	 [companyName],
+	 [productName],
+	 [price]
+	from Product
+) As Result
+Pivot(
+	Sum([price])
+	 For [productName]   
+	In (
+		[Fridge],
+		[Cabel],
+		[CPU],
+		[Car],
+		[VCD]
+	)
+) As PivotTable
+/*
+Cosmos	NA	200		NULL	NULL	NULL
+James	897	NULL	NULL	NULL	NULL
+Setu	NA	NULL	NULL	NULL	10000
+Vita	NA	NULL	NULL	2000	NULL
+York	NA	NULL	8000	NULL	NULL
+*/
+Select companyName,
+ Case When Fridge IS Null Then 'NA' else Cast(Fridge As varchar(100)) End As Fridge,
+ Case When Cabel IS Null Then 'NA' else Cast(Cabel As varchar(100)) End As Cabel,
+ Case When CPU IS Null Then 'NA' else Cast(CPU As varchar(100)) End As CPU,
+ Case When Car IS Null Then 'NA' else Cast(Car As varchar(100)) End As Car,
+ Case When VCD IS Null Then 'NA' else Cast(VCD As varchar(100)) End As VCD       from
+(
+	Select
+	 [companyName],
+	 [productName],
+	 [price]
+	from Product
+) As Result
+Pivot(
+	Sum([price])
+	 For [productName]   
+	In (
+		[Fridge],
+		[Cabel],
+		[CPU],
+		[Car],
+		[VCD]
+	)
+) As PivotTable
+/*
+ComNam Frid Cabe Cpu	Car		VCD
+Cosmos	NA	200	NA		NA		NA
+James	897	NA	NA		NA		NA
+Setu	NA	NA	NA		NA		10000
+Vita	NA	NA	NA		2000	NA
+York	NA	NA	8000	NA		NA
+*/
+```
+### Practical Format 3
+```sql
+/*
+Target:
+  Yadi aapka Price Greter than 500 hai to 10% less ho jave
+
+SA(Solution Analysis):
+ Use concept of Nested Case statement
+*/
+Select companyName,
+ Case When Fridge IS Null Then 'NA' else 
+	Case When Fridge > 500 Then Cast((Fridge - ((Fridge*10)/100)) As varchar(100)) Else Cast(Fridge As varchar(100)) End
+ End As Fridge,
+ Case When Cabel IS Null Then 'NA' else  
+	Case When Cabel > 500 Then Cast((Cabel - ((Cabel*10)/100)) As varchar(100)) Else Cast(Cabel As varchar(100)) End
+ End As Cabel,
+ Case When CPU IS Null Then 'NA' else 
+  Case When CPU > 500 Then Cast((CPU - ((CPU*10)/100)) As varchar(100)) Else Cast(CPU As varchar(100)) End
+ End As CPU,
+ Case When Car IS Null Then 'NA' else 
+  Case When Car > 500 Then Cast((Car - ((Car*10)/100)) As varchar(100)) Else Cast(Car As varchar(100))  End
+ End As Car,
+ Case When VCD IS Null Then 'NA' else  
+  Case When VCD > 500 Then Cast((VCD - ((VCD*10)/100)) As varchar(100)) Else Cast(VCD As varchar(100))  End
+ End As VCD       from
+(
+	Select
+	 [companyName],
+	 [productName],
+	 [price]
+	from Product
+) As Result
+Pivot(
+	Sum([price])
+	 For [productName]   
+	In (
+		[Fridge],
+		[Cabel],
+		[CPU],
+		[Car],
+		[VCD]
+	)
+) As PivotTable
+/*
+companyName Fridge  Cabel  CPU    Car      VCD
+Cosmos		NA		200		NA		NA		NA
+James		808		NA		NA		NA		NA
+Setu		NA		NA		NA		NA		9000
+Vita		NA		NA		NA		1800	NA
+York		NA		NA		7200	NA		NA
+*/
+```
+# 55. Diff between Execute And Sp_ExceuteSQl
+
+
+```sql
+use MyDatabase;
+select * from Employee1;
+/*
+empId	 date_of_join			FName  LName	EId		Salary	JoinYe DeptId	CityId
+1001	2020-09-24 12:11:30.233	John	Yang	1		3000	2021	1		1
+1002	2020-04-11 11:12:35.233	Smith	Ting	2		4000	2020	3		2
+1003	2020-03-03 09:11:30.233	King	Amaze	4		6000	2019	2		4
+1004	2020-02-22 09:11:30.233	Millia	King	7		5500	2021	5		8
+1005	2020-01-15 12:11:30.233	Linda	Reina	4		5500	2022	5		6
+1006	2020-05-09 09:11:30.233	Tony	Blele	2		5500	1990	3		4
+1007	2020-09-12 12:11:30.233	Joshep	Desuja	5		7800	2020	4		8
+1009	2020-09-11 06:11:30.233	Alice	Rocky	6		2100	2021	6		3
+1009	2020-09-12 05:11:30.233	Mangu	Desa	6		2200	2022	8		7
+1010	2020-09-12 04:11:30.233	David	Kulum	7		1100	2022	2		7
+NULL	2020-09-12 06:11:30.233	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+*/
+
+-- Run via Execute statement
+
+Declare @Qry As NVarchar(1000)
+Set @Qry = 'Select * from Employee1'
+Execute(@Qry); -- Execute statement 1 single parameter demand karta hai
+               -- jiske andar query assign hai
+Print @Qry
+/*
+Result:
+1001	2020-09-24 12:11:30.233	John	Yang	1	3000	2021	1	1
+1002	2020-04-11 11:12:35.233	Smith	Ting	2	4000	2020	3	2
+1003	2020-03-03 09:11:30.233	King	Amaze	4	6000	2019	2	4
+1004	2020-02-22 09:11:30.233	Millia	King	7	5500	2021	5	8
+1005	2020-01-15 12:11:30.233	Linda	Reina	4	5500	2022	5	6
+1006	2020-05-09 09:11:30.233	Tony	Blele	2	5500	1990	3	4
+1007	2020-09-12 12:11:30.233	Joshep	Desuja	5	7800	2020	4	8
+1009	2020-09-11 06:11:30.233	Alice	Rocky	6	2100	2021	6	3
+1009	2020-09-12 05:11:30.233	Mangu	Desa	6	2200	2022	8	7
+1010	2020-09-12 04:11:30.233	David	Kulum	7	1100	2022	2	7
+NULL	2020-09-12 06:11:30.233	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+
+Message:
+Select * from Employee1
+*/
+```
+### Next Part
+```sql
+/*
+Target :
+ Hume isi query mein kisi dynamic data ko search karna hai.
+*/
+Declare @Qry As NVarchar(1000)
+Declare @FName As NVarchar(100)
+Set @FName='John'
+Set @Qry = 'Select * from Employee1 where First_Name='''+@FName+''''
+Execute(@Qry); 
+Print @Qry
+/*
+Result:
+1001	2020-09-24 12:11:30.233	John	Yang	1	3000	2021	1	1
+
+Message:
+Select * from Employee1 where First_Name='John'
+*/
+```
+### Another one
+![alt text](image-235.png)![alt text](image-236.png)
+```sql
+/*
+ Iss query ke andar serious issue hai 
+  usse kehte hai Sql injection 
+Mane aap Sql statement inject kar sakte hai
+  apne parameter ke andar
+*/
+
+Declare @Qry As NVarchar(1000)
+Declare @FName As NVarchar(100)
+Set @FName='''Drop database db3--';
+Set @Qry = 'Select * from Employee1 where First_Name='''+@FName+''''
+Execute(@Qry); 
+Print @Qry
+/*
+Result:
+Empty row is displayed
+
+Message:
+Select * from Employee1 where First_Name=''Drop database db3--' 
+  Database drop successfully
+*/
+```
+### Via quote Name -Aap iss possibility ko bhi khatm kar sakte ho.
+![alt text](image-237.png)![alt text](image-238.png)
+```sql
+/*
+	Parameter ki value hum single quote mein bhej sakte hai
+	 jisse Sql injection khatam ho javenga
+
+	 QuoteName kya karta hai - jo bhi variable hai
+	  usse single quote mein wrap karta hai
+*/
+Declare @Qry As NVarchar(1000)
+Declare @FName As NVarchar(100)
+Set @FName='''Drop database db2--';
+Set @Qry = 'Select * from Employee1 where First_Name='+QuoteName(@FName,'''')+''
+Execute(@Qry); 
+Print @Qry
+/*
+Via quoteName ke wajah se  
+   drop database ki command ko vo as a value tread karenga 
+    na ki command.
+
+Result:
+Empty table will be displayed
+
+Message:
+Select * from Employee1 where First_Name='''Drop database db2--'
+*/
+```
+### New Execution plan
+```sql
+/*
+Execute statement:
+  Jab bhi parameter ki value change hoti hai
+   tab wo ek naya execution plan banata hai
+*/
+-- 2 then this
+Declare @Qry As NVarchar(1000)
+Declare @FName As NVarchar(100)
+Set @FName='John';
+Set @Qry = 'Select * from Employee1 where First_Name='+QuoteName(@FName,'''')+''
+Execute(@Qry); 
+Print @Qry
+--1001	2020-09-24 12:11:30.233	John	Yang	1	3000	2021	1	1
+
+-- 1 run this
+--DBCC FREEPROCCACHE 
+
+--3rd this
+Select cp.usecounts,cp.cacheobjtype, cp.objtype,st.text,qp.query_plan
+ From sys.dm_exec_cached_plans As cp
+ Cross Apply sys.dm_exec_sql_text(plan_handle) As st
+ Cross Apply sys.dm_exec_query_plan(plan_handle) As qp
+Order by cp.usecounts DESC
+```
+![alt text](image-239.png)![alt text](image-240.png)
+#### Phir se 
+![alt text](image-241.png)![alt text](image-242.png)
+- Same name ke liye to same plan use kar lenga(check it out)
+- but naye name se naye plan use karenga.
+### System procedure Execute sql
+```sql
+Declare @Qry1 As NVarchar(1000)
+Set @Qry1 = 'Select * from Employee1 where First_Name=@FName1'
+Execute SP_EXECUTESQL @Qry1,N'@FName1 NVarchar(100)',@FName1='John'; 
+Print @Qry1
+/*
+Result:
+1001	2020-09-24 12:11:30.233	John	Yang	1	3000	2021	1	1
+
+Message
+Select * from Employee1 where First_Name=@FName1
+*/
+```
+- execution plan chal nhi raha go for image.
+
+![alt text](image-243.png)![alt text](image-244.png)![alt text](image-245.png)![alt text](image-246.png)
+- same plan for diff parameter name .
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+
 
 
 
