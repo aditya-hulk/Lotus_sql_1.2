@@ -24,6 +24,9 @@
 ### 53. How to write complex sql query.
 ### 54. Sql pivot Complex query
 ### 55. Diff between Execute And Sp_ExceuteSQl
+### 56. GUID vs UniqueIdentifier
+### 57. Diff bet Sequnce and Identity
+### 58. MsSql Server Function | String_Agg
 
 
 
