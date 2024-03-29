@@ -5245,6 +5245,88 @@ this facility is not available in Identity
 ```
 # 58. MsSql Server Function | String_Agg
 ![alt text](image-250.png)
+```sql
+use DemoSchema;
+
+Create Table Employee
+(
+	FirstName Varchar(100),
+	LastName Varchar(100),
+	Mail Varchar(200),
+	Country Varchar(50),
+	Age Int
+)
+
+Insert Into Employee Values('Lawrence','Williams','abc.will@123.com','USA',21);
+Insert Into Employee Values('Gilbert','Miller','gil.mill@1gm.com','USA',53);
+Insert Into Employee Values('Salvador','Rodridous','sal.rod@123.com','Russia',46);
+Insert Into Employee Values('Ernest','Jones','ear.jone@123.com','USA',48);
+Insert Into Employee Values('Jerome','Garcia',Null,'Russia',46);
+
+Select * from Employee;
+/*
+Lawrence	Williams	abc.will@123.com	USA		21
+Gilbert		Miller		gil.mill@1gm.com	USA		53
+Salvador	Rodridous	sal.rod@123.com		Russia	46
+Ernest		Jones		ear.jone@123.com	USA		48
+Jerome		Garcia		NULL				Russia	46
+
+Target:
+ FirstName ko single value mein display karna hai  
+   with Separator
+*/
+Select STRING_AGG(FirstName,'-') as List 
+  from Employee;
+ /*
+ Results:
+ List
+ Lawrence-Gilbert-Salvador-Ernest-Jerome
+
+ Target:
+  yadi Mail dikhana hai to
+ */
+ Select STRING_AGG(Mail,'-') as MailList 
+  from Employee;
+/*
+Results:
+MailList
+abc.will@123.com-gil.mill@1gm.com-sal.rod@123.com-ear.jone@123.com
+
+Target:
+ Yadi Mulltiple value ko aggregate karna hai
+*/
+ Select STRING_AGG(FirstName,'-') as FirstNameList,STRING_AGG(Mail,'-') as MailList 
+  from Employee;
+/*
+Results:
+FirstNameList							MailList
+Lawrence-Gilbert-Salvador-Ernest-Jerome	abc.will@123.com-gil.mill@1gm.com-sal.rod@123.com-ear.jone@123.com
+
+Target:
+ Jo value humne join kari hai 
+   usse sorting order mein display karana hai
+*/
+Select STRING_AGG(FirstName,'_') Within Group(Order by FirstName Asc) As ListNames
+ From Employee
+/*
+ListNames
+Ernest_Gilbert_Jerome_Lawrence_Salvador
+
+Pehle grouping hoti hai, fhir order by and then aggregate
+
+Target:
+ HUme country wise firstName  ko concat karna hai
+*/
+Select Country,STRING_AGG(FirstName,'_') Within Group(Order by FirstName Asc) As ListNames
+ From Employee
+ Group By Country
+/*
+Results:
+Country			ListNames
+Russia			Jerome_Salvador
+USA				Ernest_Gilbert_Lawrence
+*/
+```
 
 
 
