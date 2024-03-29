@@ -5704,8 +5704,369 @@ Table ka design galat hai
 #### Remember: Hum jab bhi Advance stage ki aur badhte hai tab Advanced stage previous stage ki sabhi criteria ko fullfill jati hai.
 ![alt text](image-279.png)![alt text](image-280.png)![alt text](image-281.png)![alt text](image-282.png)
 # 63. Diff between view and materialized view
+### View
+![alt text](image-283.png)
+- View mein data fetch ye actual physical table(db) se hota hai.
+- view ko aap single or multiple table se create kar sakte.
+- view mirror hota hai actual table ka(uske andar koyi data store nhi hota.)
+
+![alt text](image-284.png)
+### Materialized view
+![alt text](image-285.png)
+- Materialized view mein hamara resultset ye db mein store ho jata hai.
+- Agli baar data fetch karonge to cache se data fetch honga.
+- It does not hit physical table.
+#### Question: Db mein physical table mein yadi kuch change hua hai, to uska reflection materialized view mein kaise honga.
+1) Automatic refresh ho javenga, yadi table mein update hua aur wo table materialized view mein hai; to update ho javenga
+2) aap configure kar sakte time to time.(har 15/30 minutes mein)
+#### Materialized view ki hume zarurat kaha padti hai
+- jaha par data static hota hai.
+- eg school result- ek paar process honga aur fhir change nhi honga usme.
+	- performance better
+	- reduce access time.
+
+![alt text](image-286.png)
+### Diff between the normal view and materialized view.
+![alt text](image-287.png)![alt text](image-288.png)
+- for Demand i.e you can set condition in it.
+# 64. Sql fast forward cursor.
+#### Row by row data process kaise kiya jata hai
+![alt text](image-289.png)
+#### Target: Printing the marksheet of all the student 
+![alt text](image-290.png)![alt text](image-291.png)![alt text](image-292.png)![alt text](image-293.png)![alt text](image-294.png)![alt text](image-295.png)![alt text](image-296.png)![alt text](image-297.png)![alt text](image-298.png)![alt text](image-299.png)![alt text](image-300.png)![alt text](image-301.png)
+```sql
+use DemoSchema;
+Create Table Student_Details
+(
+	RNo Int,
+	Student_Name Varchar(50),
+	Science Int,
+	Math Int
+)
+
+Insert Into Student_Details Values(1,'Anil',34,78);
+Insert Into Student_Details Values(2,'Sunil',78,43);
+Insert Into Student_Details Values(3,'Ajay',45,32);
+Insert Into Student_Details Values(4,'Vijay',36,78);
+Insert Into Student_Details Values(5,'Manoj',12,22);
+
+Select * from Student_Details;
+/*
+1	Anil	34	78
+2	Sunil	78	43
+3	Ajay	45	32
+4	Vijay	36	78
+5	Manoj	12	22
+*/
+
+--Create Sql fast forward Cursor
+Declare @RollNo Int,@StudName Varchar(50),@Science Int,@Math Int -- Declare variables
+Declare student_cursor Cursor For Select      -- cursor declaration; Ye select statement ke liye
+ RNo,Student_Name,Science,Math from Student_Details;  -- temprarary RecordSet banata hai(usme select
+                                                       -- statement ko store karta hai)
+Open student_cursor;  -- Open cursor
+Fetch Next from student_cursor Into  -- For setting the pointer
+ @RollNo,@StudName,@Science,@Math
+While @@FETCH_STATUS=0   -- 0 means data is there and -1 means no data
+ Begin
+	Print Concat('Name : ',@StudName);
+	Print Concat('Roll NO : ',@RollNo);
+	Print Concat('Science : ',@Science);
+	Print Concat('Maths : ',@Math);
+	Print Concat('Total : ',@Math+@Science);
+	Fetch Next from student_cursor Into  -- Increment pointer
+	 @RollNo,@StudName,@Science,@Math
+ End
+Close student_cursor; -- close cursor (cursor ki memory ko clean karta hai)
+Deallocate student_cursor; -- deallocate cursor_memory ie. recordset delete.
+/*
+Message:
+Name : Anil
+Roll NO : 1
+Science : 34
+Maths : 78
+Total : 112
+
+Name : Sunil
+Roll NO : 2
+Science : 78
+Maths : 43
+Total : 121
+
+Name : Ajay
+Roll NO : 3
+Science : 45
+Maths : 32
+Total : 77
+
+Name : Vijay
+Roll NO : 4
+Science : 36
+Maths : 78
+Total : 114
+
+Name : Manoj
+Roll NO : 5
+Science : 12
+Maths : 22
+Total : 34
+*/
+```
+# 65. Sql Interview question ans part1
+![alt text](image-302.png)![alt text](image-303.png)
+```sql
+use DemoSchema;
+
+CREATE TABLE [dbo].[Transactions](
+ [CustID] [int] ,
+ [TranID] [int] ,
+ [TranAmt] [float] ,
+ [TranDate] [date] 
+) 
 
 
+INSERT [dbo].[Transactions] ([CustID], [TranID], [TranAmt], [TranDate]) VALUES (1001, 20001, 10000, CAST('2020-04-25' AS Date))
+INSERT [dbo].[Transactions] ([CustID], [TranID], [TranAmt], [TranDate]) VALUES (1001, 20002, 15000, CAST('2020-04-25' AS Date))
+INSERT [dbo].[Transactions] ([CustID], [TranID], [TranAmt], [TranDate]) VALUES (1001, 20003, 80000, CAST('2020-04-25' AS Date))
+INSERT [dbo].[Transactions] ([CustID], [TranID], [TranAmt], [TranDate]) VALUES (1001, 20004, 20000, CAST('2020-04-25' AS Date))
+INSERT [dbo].[Transactions] ([CustID], [TranID], [TranAmt], [TranDate]) VALUES (1002, 30001, 7000, CAST('2020-04-25' AS Date))
+INSERT [dbo].[Transactions] ([CustID], [TranID], [TranAmt], [TranDate]) VALUES (1002, 30002, 15000, CAST('2020-04-25' AS Date))
+INSERT [dbo].[Transactions] ([CustID], [TranID], [TranAmt], [TranDate]) VALUES (1002, 30003, 22000, CAST('2020-04-25' AS Date))
+
+Select * from dbo.transactions;
+/*
+CustId TranID  TranAmt  TranDate
+1001	20001	10000	2020-04-25
+1001	20002	15000	2020-04-25
+1001	20003	80000	2020-04-25
+1001	20004	20000	2020-04-25
+1002	30001	7000	2020-04-25
+1002	30002	15000	2020-04-25
+1002	30003	22000	2020-04-25
+
+Kis customer ne kis date ko kitna transaction  kiya 
+  kitne amoutn ka kiya
+
+Target:
+  Client ne maximum transaction kis date mein kiya tha
+   aur uske ration mein same client baki transaction kitna
+    ration or percent se hua
+
+eg: cutomer id 1001 ne 80K ka maximum transaction kiya 
+     so that is 1 
+	 baki usne 15k,20k,10k 80k ke hisab se kitne ratio
+
+	 or
+	 cutomer id 1001 ne 80K ka maximum transaction kiya 
+     so that is 100% 
+	 baki usne 15k,20k,10k 80k ke hisab se kitne percent
+*/
+```
+### Using Inner Join Subquery
+```sql
+
+select CustID, Max(TranAmt) as MaxAmt FRom Transactions  Group by custID
+/*
+CustId  MaxAmt
+1001	80000
+1002	22000
+*/
+
+select a.custID, a.TranID, a.TranAmt,(a.TranAmt/MaxAmt) As Ratio,a.TranDate 
+	FRom Transactions a
+       Inner Join
+(select custID, Max(TranAmt) as MaxAmt FRom Transactions  Group by custID) b
+      ON A.CustID=b.CustID
+/*
+Yaha humne 2 alias use kiya hai same table par
+ Transactions a & Transactions b
+
+ MaxAmt ko lane ke liye hi
+  humne Inner Join use karke
+   subquery ka use kiya hai.
+Isme hum nikal rahe hai 
+  Maxium transaction amount of group by custId
+    mane CustId ko group karke-- Usme maximum transaction amount kitna hai.
+
+tab ratio hume mil pavenga
+ ki TransAmt/MaxAmt
+
+CustId  TranId TranAmt  Ratio              TranDate
+1001	20001	10000	0.125				2020-04-25
+1001	20002	15000	0.1875				2020-04-25
+1001	20003	80000	1					2020-04-25
+1001	20004	20000	0.25				2020-04-25
+1002	30001	7000	0.318181818181818	2020-04-25
+1002	30002	15000	0.681818181818182	2020-04-25
+1002	30003	22000	1					2020-04-25
+
+Target:
+ Ratio mein hume Percentage dekna hai
+*/
+select a.custID, a.TranID, a.TranAmt,Concat(a.TranAmt*100/MaxAmt,'%') As Percentage,a.TranDate 
+	FRom Transactions a
+       Inner Join
+(select custID, Max(TranAmt) as MaxAmt FRom Transactions  Group by custID) b
+      ON A.CustID=b.CustID
+/*
+CustId  TranId TranAmt  Percentage  TranDate
+1001	20001	10000	12.5%		2020-04-25
+1001	20002	15000	18.75%		2020-04-25
+1001	20003	80000	100%		2020-04-25
+1001	20004	20000	25%			2020-04-25
+1002	30001	7000	31.8182%	2020-04-25
+1002	30002	15000	68.1818%	2020-04-25
+1002	30003	22000	100%		2020-04-25
+*/
+```
+![alt text](image-304.png)
+### via CTE(Common Table Expression)
+- cte hamara temprary result set hai jo table ke format mein hota hai.
+-- cte is better than inner join
+```sql
+--Using CTE
+with cte (custID,TranID,TRanAmt) AS   --ek table Cte a
+(
+	select custID,TranID,TranAmt FRom Transactions 
+),
+CTE2(CustID,MaxAmt) AS   -- ye dusra cte table
+(
+	select custID, Max(TranAmt) as MaxAmt FRom Transactions Group by custID
+)
+select a.custID,a.TranID,a.TranAmt,(a.TranAmt/MaxAmt) As Ratio 
+FRom  cte a
+	 Inner Join
+	 cte2 b
+ ON A.CustID=b.CustID
+/*
+custId  TransId  TranAmt Ratio
+1001	20001	10000	0.125
+1001	20002	15000	0.1875
+1001	20003	80000	1
+1001	20004	20000	0.25
+1002	30001	7000	0.318181818181818
+1002	30002	15000	0.681818181818182
+1002	30003	22000	1
+*/
+```
+# 66. Sql Interview question ans part2
+![alt text](image-305.png)![alt text](image-306.png)
+- Hume wo marks uthane hai; 
+	- jsime current year mein previous year se behtar kiya hai
+```sql
+use DemoSchema;
+CREATE TABLE Student(
+[Student_Name]  varchar(30),
+[Total_Marks]  int ,
+[Year]  int)
+
+INSERT INTO Student VALUES('Rahul',90,2010)
+INSERT INTO Student VALUES('Sanjay',80,2010)
+INSERT INTO Student VALUES('Mohan',70,2010)
+INSERT INTO Student VALUES('Rahul',90,2011)
+INSERT INTO Student VALUES('Sanjay',85,2011)
+INSERT INTO Student VALUES('Mohan',65,2011)
+INSERT INTO Student VALUES('Rahul',80,2012)
+INSERT INTO Student VALUES('Sanjay',80,2012)
+INSERT INTO Student VALUES('Mohan',90,2012)
+
+select * from Student
+/*
+stuName mar  Year
+Rahul	90	2010
+Sanjay	80	2010
+Mohan	70	2010
+Rahul	90	2011
+Sanjay	85	2011
+Mohan	65	2011
+Rahul	80	2012
+Sanjay	80	2012
+Mohan	90	2012
+
+Lag() Function:
+ It is used to access the previous row data
+ Lag() function hamesha over ke sath use hota hai
+*/
+select student_name,total_marks,[Year],
+  LAG(Total_Marks) Over(Partition By Student_Name Order By Year) As Prev_yr_Marks 
+   From Student 
+/*
+SName  TotMa Year  PrviouYearMark
+Mohan	70	2010	NULL  -- Jiska Previous Data nhi hai waha Null avenga.
+Mohan	65	2011	70
+Mohan	90	2012	65
+
+Rahul	90	2010	NULL
+Rahul	90	2011	90
+Rahul	80	2012	90
+
+Sanjay	80	2010	NULL
+Sanjay	85	2011	80
+Sanjay	80	2012	85
+
+isse compare karke hum result ko nikal sakte
+*/
+```
+### via Cte
+```sql
+with ct1(student_name,total_marks,[Year],Prev_yr_Marks) AS
+(
+  select student_name,total_marks,[Year],
+  LAG(Total_Marks) Over(Partition By Student_Name Order By Year)
+  As Prev_yr_Marks From Student 
+)
+select * from ct1 where Total_Marks >= Prev_yr_Marks;
+/*
+Mohan	90	2012	65
+Rahul	90	2011	90
+Sanjay	85	2011	80
+
+Cte hamara ek temprary resultSet table create karengea
+ 2nd select statement us table ke andar condition check kar display marenga.
+*/
+```
+### via temprary table
+```sql
+Create Table #temp
+(
+ student_name Varchar(100),
+ total_marks INT,
+ [Year] INT,
+ Prev_yr_Marks INT
+)
+Insert Into #temp(student_name,total_marks,[Year],Prev_yr_Marks) 
+ select student_name,total_marks,[Year],
+  LAG(Total_Marks) Over(Partition By Student_Name Order By Year) From Student 
+
+select * from #temp where Total_Marks  >=  Prev_yr_Marks
+/*
+query se data generate karke
+ humne fill kiya hai temprary table
+
+Mohan	90	2012	65
+Rahul	90	2011	90
+Sanjay	85	2011	80
+*/
+```
+### via UDF
+```sql
+CREATE FUNCTION BetterPerformance()
+RETURNS TABLE
+AS
+RETURN
+    select student_name,total_marks,[Year],
+	LAG(Total_Marks) Over(Partition By Student_Name Order By Year) AS Prev_yr_Marks 
+	From Student 
+
+select * from dbo.BetterPerformance() where Total_Marks  >= Prev_yr_Marks
+/*
+Mohan	90	2012	65
+Rahul	90	2011	90
+Sanjay	85	2011	80
+*/
+```
+#### Data yadi kum hai toh 3 mein se koyi bhi solution use kar sakte
+- but data yadi jyada hai, tab use CTE.
 
 
 

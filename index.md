@@ -33,6 +33,10 @@
 ### 61. 3rd Normal form
 ### 62. BCNF Normal form
 ### 63. Diff between view and materialized view
+### 64. Sql fast forward cursor.
+### 65. Sql Interview question ans part1
+### 66. Sql Interview question ans part2
+
 
 
 
