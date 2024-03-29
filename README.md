@@ -5327,7 +5327,201 @@ Russia			Jerome_Salvador
 USA				Ernest_Gilbert_Lawrence
 */
 ```
+# 48. Sql Normalization
+![alt text](image-251.png)![alt text](image-252.png)![alt text](image-253.png)
+### So here we use concept of Normalization to reduce this anamoly
+```sql
+use DemoSchema;
 
+Create Table emp
+(
+	id Int Not NUll,
+	name Varchar(50) Not Null,
+	address Varchar(50) Not Null,
+	dept Varchar(50) Not Null	
+)
+
+Insert Into Emp Values(101,'rick','delhi','sales');
+Insert Into Emp Values(101,'rick','delhi','Purchase');
+Insert Into Emp Values(102,'Maggie','Agra','Accounts');
+Insert Into Emp Values(105,'John','London','IT');
+Insert Into Emp Values(105,'John','London','sales');
+
+Select * from Emp;
+/*
+id  name   address  dept
+101	rick	delhi	sales
+101	rick	delhi	Purchase
+102	Maggie	Agra	Accounts
+105	John	London	IT
+105	John	London	sales
+
+Target:
+ Naye emp ki info add karni par
+  but hame nhi pata ki uska dept konsa rahenga
+*/
+--Insert
+Insert Into emp(id,name,address) Values(16,'King','DC');
+/*
+Message: Error
+Cannot insert the value NULL into column 'dept', table 
+   'DemoSchema.dbo.emp'; column does not allow nulls. 
+INSERT fails.
+
+This is called Insert Anamoly
+
+Target:
+  Update it
+*/
+Update emp set dept='IT' where id=101;
+-- 2 row updated
+Select * from emp;
+/*
+101	rick	delhi	IT
+101	rick	delhi	IT
+102	Maggie	Agra	Accounts
+105	John	London	IT
+105	John	London	sales
+
+Ideally aapka 1 row update hona chaiye
+ but yaha 2 row update ho gye.
+
+This is called Update anamoly.
+
+Target:
+ Delte it
+*/
+Delete emp where id=101;
+-- 2 row deleted
+Select * from emp;
+/*
+102	Maggie	Agra	Accounts
+105	John	London	IT
+105	John	London	sales
+
+1 row delete hona chaiye tha
+ 2 row delete ho gye
+
+this is called delete anamoly.
+
+We use concept of Normalization
+  to remove this anamoly.
+*/
+```
+### Types of normalization
+![alt text](image-254.png)
+### 1st Normal form
+![alt text](image-255.png)
+- table ke kisi col mein multiple value nhi honi chaiye.
+- atomic bole toh jisko hum furthur divide nhi kar sakte.
+	- It should hold only atomic value
+	- Mobile No ko hum divide kar sakte hai comma(,) k baad
+- Each record should be unique.
+	- combination ke basis par bhi unique banta
+
+![alt text](image-256.png)
+### 2nd Normal form
+![alt text](image-257.png)
+- Multiple col ko mila kar jab aap uniqueness maintain karte hai usse kehte hai ***composite key***
+- should be satisfied all conditions of 1st normal form
+- all non key attribute are dependent on primary key not on composite key.
+- ab yadi age nikal ni hai upar ke table se so query chalake(slect age from table where id= sth)
+	- to 2 age aa gyi i.e not standard
+
+![alt text](image-258.png)
+### Let check table emp
+![alt text](image-259.png)![alt text](image-260.png)![alt text](image-261.png)
+```sql
+
+Insert Into emp1 Values('111','Btech',38);
+Insert Into emp1 Values('111','MA',38);
+Insert Into emp1 Values('222','MCA',38);
+Insert Into emp1 Values('333','MBA',40);
+Insert Into emp1 Values('333','MS',40);
+
+select * from emp1;
+/*
+111	Btech	38
+111	MA		38
+222	MCA		38
+333	MBA		40
+333	MS		40
+
+Target:
+ Hum MA ko dobara enter karte hai
+
+Insert It
+*/
+Insert Into emp1 Values('111','MA',38);
+/*
+Message Error:
+Violation of PRIMARY KEY constraint 'PK_emp1'. 
+  Cannot insert duplicate key in object 'dbo.emp1'. 
+	The duplicate key value is (111, MA).
+
+Target:
+ Now modified insert statement
+*/
+Insert Into emp1 Values('111','MA1',38);
+--  1 row inserted
+
+Select * from emp1;
+/*
+111	Btech	38
+111	MA		38
+111	MA1		38
+222	MCA		38
+333	MBA		40
+333	MS		40
+
+Problem kaha hai:
+ Ab yadi age nikalni hai
+*/
+select age from emp1 where emp_id=111;
+/*
+Results:
+age
+38
+38
+38
+
+3 rows display ho rahe hai age ke
+ This is not the standard
+*/
+```
+### Solutions is
+![alt text](image-262.png)
+### 3rd Normal form
+![alt text](image-263.png)
+- It should complete criteria for 1st and 2nd normal form
+- Transitive functional dependency
+	- City ye Zip par dependent hai(yadi zip ko change karonge to city change ho javengi)
+	- aur zip ye emp_id ke upar dependent hai
+	- so city indirectly dependent hai emp_id par
+	- this indirect depedency called as Transitive functional dependency
+- So there should be no transitive functional dependency
+### Solution
+![alt text](image-264.png)
+### BCNF
+![alt text](image-265.png)
+- Dig explain
+	- 1 student multiple subject le sakta hai
+	- 1 professor 1 subject padhata hai, aur  1 professor multiple student ko bhi padha sakta hai
+	- 1 subject ko multiple professor padha sakte hai.
+	- Yaha professor dependent hai subject ke upar(yadi subject change to professor change)
+### Solution
+![alt text](image-266.png)
+### 4rth Normalization
+![alt text](image-267.png)
+- fullfill all criteria from 1st Normaliztion to BCNF
+- It has no multivalue dependency
+- Dig explain
+	- studentId 21 hai uska course hai computer aur hobbby hai dancing.
+	- studentId 21 hai uska course hai math aur hobbby hai singing.
+	- course dependent hai studentId par, and hobby bhi depdent hai studentId par
+### solution
+![alt text](image-268.png)
+# 59. 1st Normal form
 
 
 

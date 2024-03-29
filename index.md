@@ -27,6 +27,8 @@
 ### 56. GUID vs UniqueIdentifier
 ### 57. Diff bet Sequnce and Identity
 ### 58. MsSql Server Function | String_Agg
+### 48. Sql Normalization
+### 59. 1st Normal form
 
 
 
