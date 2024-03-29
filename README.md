@@ -5522,6 +5522,191 @@ age
 ### solution
 ![alt text](image-268.png)
 # 59. 1st Normal form
+![alt text](image-269.png)![alt text](image-270.png)
+```sql
+use DemoSchema;
+
+Insert Into Emp Values(101,'Rick','Delhi','Sales');
+Insert Into Emp Values(101,'Rick','Delhi','Purchase');
+Insert Into Emp Values(123,'Maggie','Agra','Accounts');
+Insert Into Emp Values(166,'John','Jaipur','Sales');
+Insert Into Emp Values(166,'John','Jaipur','Purchase');
+
+Select * from Emp;
+/*
+id name		address dept
+101	Rick	Delhi	Sales
+101	Rick	Delhi	Purchase
+123	Maggie	Agra	Accounts
+166	John	Jaipur	Sales
+166	John	Jaipur	Purchase
+
+emp table ke sare col not null hai
+
+Target:
+ Hume naye employee ki entry karni hai
+   jisme hame employee ka dept nhi pata.
+*/
+Insert Into Emp(Id,name,address) Values(111,'Jingle','London');
+/*
+Message Error:
+Cannot insert the value NULL into column 'dept', 
+ table 'DemoSchema.dbo.emp';
+  column does not allow nulls. 
+	INSERT fails.
+
+Target:
+ Update it
+*/
+Update Emp set dept='Purchase' where Id=101;
+--2 row updated
+Select * from Emp;
+/*
+101	Rick	Delhi	Purchase
+101	Rick	Delhi	Purchase
+123	Maggie	Agra	Accounts
+166	John	Jaipur	Sales
+166	John	Jaipur	Purchase
+
+1 row update honi chaiye thi,
+ but 2 row update hue
+
+Target:
+ Delete it
+*/
+Delete from Emp where Id=101;
+--2 row deleted
+Select * from Emp;
+/*
+123	Maggie	Agra	Accounts
+166	John	Jaipur	Sales
+166	John	Jaipur	Purchase
+
+This is called anamoly
+*/
+```
+### Types of Normalization
+![alt text](image-271.png)![alt text](image-272.png)
+```sql
+Alter table Emp
+ alter column id  varchar(50) Not NUll;
+
+ Truncate table emp;
+
+Insert Into Emp Values('E013','John','Delhi','Account,Sales');
+Insert Into Emp Values('E101','Linda','Delhi','Sales');
+Insert Into Emp Values('E102','Simon','Paris','Purchase,IT');
+
+Select * from Emp;
+/*
+id		name	address dept
+E013	John	Delhi	Account,Sales
+E101	Linda	Delhi	Sales
+E102	Simon	Paris	Purchase,IT
+
+Yaha hamara 1 employee 2 dept mein kaam karta hai
+
+Apply 1st normalization
+*/
+Delete Emp where Id='E013';
+Insert Into Emp Values('E013','John','Delhi','Account');
+Insert Into Emp Values('E013','John','Delhi','Sales');
+
+Delete Emp where Id='E102';
+Insert Into Emp Values('E102','Simon','Paris','IT');
+Insert Into Emp Values('E102','Simon','Paris','Purchase');
+
+Select * from Emp;
+/*
+id      name    address   dept
+E013	John	Delhi	Account
+E101	Linda	Delhi	Sales
+E102	Simon	Paris	IT
+E013	John	Delhi	Sales
+E102	Simon	Paris	Purchase
+
+This is the result of 1st Normalization
+*/
+```
+# 60. 2nd Normal form
+![alt text](image-273.png)
+```sql
+use DemoSchema; 
+
+Truncate table emp1;
+
+Insert Into emp1 Values('111','Btech',38);
+Insert Into emp1 Values('111','MA',38);
+Insert Into emp1 Values('222','MCA',38);
+Insert Into emp1 Values('333','MBA',40);
+Insert Into emp1 Values('333','MS',40);
+
+Select * from Emp1;
+/*
+111	Btech	38
+111	MA		38
+222	MCA		38
+333	MBA		40
+333	MS		40
+
+Remember In earlier video we create Emp1 table
+ with composite key
+
+ Target:
+  if if insert same primary key for(id & qualification)
+*/
+Insert Into emp1 Values('111','MA',34);
+/*
+Message Error:
+Violation of PRIMARY KEY constraint 'PK_emp1'. 
+ Cannot insert duplicate key in object 'dbo.emp1'. 
+  The duplicate key value is (111, MA).
+
+Insert another combo
+*/
+Insert Into emp1 Values('111','BBA',34);
+--1 row inserted
+Select * from Emp1;
+/*
+111	BBA		34
+111	Btech	38
+111	MA		38
+222	MCA		38
+333	MBA		40
+333	MS		40
+
+Problem:
+ Ab yadi hum age set karte hai
+*/
+Update emp1 set age=50 where emp_id = 111;
+-- 3 row affected
+Select * from Emp1;
+/*
+111	BBA		50
+111	Btech	50
+111	MA		50
+222	MCA		38
+333	MBA		40
+333	MS		40
+
+3 row update ho gye
+  jo ki galat hai
+Table ka design galat hai
+ non key attribute ye ek hi single primary key par dependent hona chaiye.
+*/
+```
+### Solutions
+![alt text](image-274.png)
+# 61. 3rd Normal form
+![alt text](image-275.png)![alt text](image-276.png)![alt text](image-277.png)
+# 62. BCNF Normal form
+![alt text](image-278.png)
+#### Remember: Hum jab bhi Advance stage ki aur badhte hai tab Advanced stage previous stage ki sabhi criteria ko fullfill jati hai.
+![alt text](image-279.png)![alt text](image-280.png)![alt text](image-281.png)![alt text](image-282.png)
+# 63. Diff between view and materialized view
+
+
+
 
 
 

@@ -29,6 +29,11 @@
 ### 58. MsSql Server Function | String_Agg
 ### 48. Sql Normalization
 ### 59. 1st Normal form
+### 60. 2nd Normal form
+### 61. 3rd Normal form
+### 62. BCNF Normal form
+### 63. Diff between view and materialized view
+
 
 
 
